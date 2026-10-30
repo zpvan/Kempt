@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { translate, type Language, type TranslationKey, type TranslationValues } from "@/lib/i18n";
+import { initialLanguage } from "@/services/storageMigration";
 
 export type Theme = "light" | "dark";
 interface PreferencesValue {
@@ -14,7 +15,7 @@ const PreferencesContext = createContext<PreferencesValue | null>(null);
 
 export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => localStorage.getItem("kempt.theme") === "dark" ? "dark" : "light");
-  const [language, setLanguage] = useState<Language>(() => localStorage.getItem("kempt.language") === "en" ? "en" : "zh");
+  const [language, setLanguage] = useState<Language>(() => initialLanguage(localStorage));
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
