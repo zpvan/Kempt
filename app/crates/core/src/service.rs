@@ -7,12 +7,28 @@ use std::sync::Arc;
 
 pub struct AppService<R> {
     pub(crate) repository: Arc<R>,
+    pub(crate) secrets: Option<Arc<dyn crate::secrets::SecretStore>>,
+    pub(crate) catalog: Option<Arc<dyn crate::assistant::ProviderCatalog>>,
 }
 
 impl<R: TaskRepository> AppService<R> {
     pub fn new(repository: R) -> Self {
         Self {
             repository: Arc::new(repository),
+            secrets: None,
+            catalog: None,
+        }
+    }
+
+    pub fn with_assistant(
+        repository: R,
+        secrets: Arc<dyn crate::secrets::SecretStore>,
+        catalog: Arc<dyn crate::assistant::ProviderCatalog>,
+    ) -> Self {
+        Self {
+            repository: Arc::new(repository),
+            secrets: Some(secrets),
+            catalog: Some(catalog),
         }
     }
 

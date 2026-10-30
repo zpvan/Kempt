@@ -353,7 +353,7 @@ fn parse_priority(value: &str) -> Result<Priority, ()> {
     }
 }
 
-fn iso_timestamp(milliseconds: i64) -> String {
+pub(crate) fn iso_timestamp(milliseconds: i64) -> String {
     DateTime::from_timestamp_millis(milliseconds)
         .unwrap_or_else(|| DateTime::from_timestamp(0, 0).unwrap())
         .to_rfc3339()

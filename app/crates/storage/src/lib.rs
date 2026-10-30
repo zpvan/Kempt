@@ -1,7 +1,10 @@
+mod assistant;
 mod backup;
 mod repository;
+mod secrets;
 
 pub use repository::SqliteRepository;
+pub use secrets::KeyringSecretStore;
 
 use kempt_core::error::AppError;
 use rusqlite::Connection;

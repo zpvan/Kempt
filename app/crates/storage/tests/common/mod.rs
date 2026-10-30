@@ -1,3 +1,5 @@
+pub mod assistant;
+
 use kempt_core::model::{ChecklistItem, Status, Task, WorkLog};
 use kempt_core::service::AppService;
 use kempt_storage::{Database, SqliteRepository};
