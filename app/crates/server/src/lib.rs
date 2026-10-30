@@ -3,12 +3,8 @@ pub mod http;
 
 use directories::ProjectDirs;
 use http::ServerService;
-use kempt_core::{
-    ai::ReqwestAiTransport, assistant::AssistantRepository, error::AppError, service::AppService,
-};
-use kempt_storage::{
-    migrate_credentials, open_kempt_database, KeyringSecretStore, SqliteRepository,
-};
+use kempt_core::{ai::ReqwestAiTransport, error::AppError, service::AppService};
+use kempt_storage::{Database, KeyringSecretStore, SqliteRepository};
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -45,9 +41,7 @@ pub fn build_router(service: ServerService) -> axum::Router {
 pub async fn serve(options: ServeOptions) -> Result<(), AppError> {
     options.validate()?;
     let data_dir = options.data_dir();
-    let legacy_dir = options.data_dir.is_none().then(legacy_data_dir);
-    let service =
-        build_service_with_migration(&data_dir, legacy_dir.as_deref(), options.session_secrets)?;
+    let service = build_service(&data_dir, options.session_secrets)?;
     let _log_guard = init_logging(&data_dir)?;
     let address = format!("{}:{}", options.host, options.port);
     let listener = tokio::net::TcpListener::bind(&address)
@@ -60,31 +54,15 @@ pub async fn serve(options: ServeOptions) -> Result<(), AppError> {
 }
 
 pub fn build_service(data_dir: &Path, session_secrets: bool) -> Result<ServerService, AppError> {
-    build_service_with_migration(data_dir, None, session_secrets)
-}
-
-pub fn build_service_with_migration(
-    data_dir: &Path,
-    legacy_dir: Option<&Path>,
-    session_secrets: bool,
-) -> Result<ServerService, AppError> {
-    let database = open_kempt_database(data_dir, legacy_dir.unwrap_or(data_dir))?;
+    let database = Database::open(&data_dir.join("kempt.db"))?;
     database.migrate()?;
     let secrets: Arc<dyn kempt_core::secrets::SecretStore> = if session_secrets {
         Arc::new(kempt_core::secrets::MemorySecretStore::default())
     } else {
         Arc::new(KeyringSecretStore::new())
     };
-    let repository = SqliteRepository::new(database);
-    if !session_secrets {
-        migrate_credentials(
-            &repository.secret_references()?,
-            &KeyringSecretStore::legacy(),
-            secrets.as_ref(),
-        )?;
-    }
     Ok(AppService::with_assistant(
-        repository,
+        SqliteRepository::new(database),
         secrets,
         Arc::new(ReqwestAiTransport::new()?),
     ))
@@ -97,12 +75,6 @@ pub fn test_service(data_dir: &Path) -> ServerService {
 
 fn default_data_dir() -> PathBuf {
     ProjectDirs::from("com", "kempt", "Kempt")
-        .map(|dirs| dirs.data_dir().to_path_buf())
-        .unwrap_or_else(|| PathBuf::from("."))
-}
-
-fn legacy_data_dir() -> PathBuf {
-    ProjectDirs::from("com", "nohea", "kempt")
         .map(|dirs| dirs.data_dir().to_path_buf())
         .unwrap_or_else(|| PathBuf::from("."))
 }

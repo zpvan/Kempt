@@ -1,5 +1,5 @@
 use kempt_core::{
-    branding::{BUNDLE_ID, LEGACY_BUNDLE_ID},
+    branding::BUNDLE_ID,
     error::AppError,
     secrets::SecretStore,
 };
@@ -18,12 +18,6 @@ impl KeyringSecretStore {
     pub fn new() -> Self {
         Self {
             service: BUNDLE_ID.into(),
-        }
-    }
-
-    pub fn legacy() -> Self {
-        Self {
-            service: LEGACY_BUNDLE_ID.into(),
         }
     }
 

@@ -1,14 +1,11 @@
 use directories::ProjectDirs;
 use kempt_core::{
     ai::ReqwestAiTransport,
-    assistant::AssistantRepository,
     dispatch::dispatch,
     error::{AppError, ErrorBody},
     service::AppService,
 };
-use kempt_storage::{
-    migrate_credentials, open_kempt_database, KeyringSecretStore, SqliteRepository,
-};
+use kempt_storage::{Database, KeyringSecretStore, SqliteRepository};
 use std::{path::PathBuf, sync::Arc};
 
 pub struct AppState {
@@ -69,19 +66,14 @@ fn write_backup(path: String, contents: String) -> Result<(), ErrorBody> {
     std::fs::write(path, contents).map_err(|error| AppError::Storage(error.to_string()).body())
 }
 
-fn data_dirs() -> Result<(PathBuf, PathBuf), AppError> {
-    let new_dir = ProjectDirs::from("com", "kempt", "Kempt")
+fn data_dir() -> Result<PathBuf, AppError> {
+    ProjectDirs::from("com", "kempt", "Kempt")
         .map(|dirs| dirs.data_dir().to_path_buf())
-        .ok_or_else(|| AppError::Storage("Cannot resolve application data directory".into()))?;
-    let legacy_dir = ProjectDirs::from("com", "nohea", "kempt")
-        .map(|dirs| dirs.data_dir().to_path_buf())
-        .ok_or_else(|| AppError::Storage("Cannot resolve legacy data directory".into()))?;
-    Ok((new_dir, legacy_dir))
+        .ok_or_else(|| AppError::Storage("Cannot resolve application data directory".into()))
 }
 
 fn build_service() -> Result<AppService<SqliteRepository>, AppError> {
-    let (new_dir, legacy_dir) = data_dirs()?;
-    let database = open_kempt_database(&new_dir, &legacy_dir)?;
+    let database = Database::open(&data_dir()?.join("kempt.db"))?;
     database.migrate()?;
     let secrets: Arc<dyn kempt_core::secrets::SecretStore> =
         if std::env::var("HEA_SESSION_SECRETS").as_deref() == Ok("1") {
@@ -89,17 +81,8 @@ fn build_service() -> Result<AppService<SqliteRepository>, AppError> {
         } else {
             Arc::new(KeyringSecretStore::new())
         };
-    let session_secrets = std::env::var("HEA_SESSION_SECRETS").as_deref() == Ok("1");
-    let repository = SqliteRepository::new(database);
-    if !session_secrets {
-        migrate_credentials(
-            &repository.secret_references()?,
-            &KeyringSecretStore::legacy(),
-            secrets.as_ref(),
-        )?;
-    }
     Ok(AppService::with_assistant(
-        repository,
+        SqliteRepository::new(database),
         secrets,
         Arc::new(ReqwestAiTransport::new()?),
     ))
@@ -117,7 +100,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![rpc, read_backup, write_backup])
         .run(tauri::generate_context!())
-        .expect("error while running Hea Workflow");
+        .expect("error while running Kempt");
 }
 
 #[cfg(test)]

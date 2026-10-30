@@ -3,6 +3,15 @@ mod common;
 use common::*;
 
 #[test]
+fn rejects_legacy_v2_backup() {
+    let fixture = Fixture::new();
+    let mut backup = fixture.service.export_backup().unwrap();
+    backup.format = "kempt-full-backup".into();
+    backup.version = 2;
+    assert_eq!(fixture.service.import_backup(backup).unwrap_err().code(), "VALIDATION");
+}
+
+#[test]
 fn new_export_uses_kempt_v3() {
     let fixture = Fixture::new();
     let backup = fixture.service.export_backup().unwrap();
@@ -85,6 +94,6 @@ fn restore_ignores_legacy_owner_and_rejects_invalid_version() {
     let mut backup = fixture.service.export_backup().unwrap();
     backup.users[0].owner_union_id = Some("another-account".into());
     assert!(fixture.service.import_backup(backup.clone()).is_ok());
-    backup.version = 4;
+    backup.version = 2;
     assert!(fixture.service.import_backup(backup).is_err());
 }

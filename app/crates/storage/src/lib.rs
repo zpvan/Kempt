@@ -1,11 +1,9 @@
 mod assistant;
 mod backup;
 mod chat;
-mod migration;
 mod repository;
 mod secrets;
 
-pub use migration::{migrate_credentials, open_kempt_database};
 
 pub use repository::SqliteRepository;
 pub use secrets::KeyringSecretStore;

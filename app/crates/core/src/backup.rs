@@ -1,5 +1,5 @@
 use crate::{
-    branding::{BACKUP_FORMAT_V2, BACKUP_FORMAT_V3},
+    branding::BACKUP_FORMAT_V3,
     error::AppError,
     model::Task,
     repository::{AppUser, TaskRepository},
@@ -116,9 +116,7 @@ impl<R: BackupRepository> AppService<R> {
 }
 
 fn validate_backup(backup: &FullBackup) -> Result<(), AppError> {
-    let supported = (backup.format == BACKUP_FORMAT_V2 && backup.version == 2)
-        || (backup.format == BACKUP_FORMAT_V3 && backup.version == 3);
-    if !supported {
+    if backup.format != BACKUP_FORMAT_V3 || backup.version != 3 {
         return Err(AppError::Validation("Unsupported backup format".into()));
     }
     if backup.users.is_empty() || backup.users.len() > 1000 || backup.tasks.len() > 20_000 {

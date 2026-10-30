@@ -1,11 +1,8 @@
 pub const PRODUCT_NAME: &str = "Kempt";
 pub const PRODUCT_NAME_ZH: &str = "企理";
 pub const BUNDLE_ID: &str = "com.kempt.workflow";
-pub const LEGACY_BUNDLE_ID: &str = "com.kempt.workflow";
 pub const DATABASE_FILE: &str = "kempt.db";
-pub const LEGACY_DATABASE_FILE: &str = "kempt.db";
 pub const SERVER_BINARY: &str = "kempt-server";
-pub const BACKUP_FORMAT_V2: &str = "kempt-full-backup";
 pub const BACKUP_FORMAT_V3: &str = "kempt-full-backup";
 
 #[cfg(test)]
