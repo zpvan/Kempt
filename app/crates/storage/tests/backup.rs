@@ -6,9 +6,12 @@ use common::*;
 fn rejects_legacy_v2_backup() {
     let fixture = Fixture::new();
     let mut backup = fixture.service.export_backup().unwrap();
-    backup.format = "kempt-full-backup".into();
+    backup.format = "invalid-full-backup".into();
     backup.version = 2;
-    assert_eq!(fixture.service.import_backup(backup).unwrap_err().code(), "VALIDATION");
+    assert_eq!(
+        fixture.service.import_backup(backup).unwrap_err().code(),
+        "VALIDATION"
+    );
 }
 
 #[test]

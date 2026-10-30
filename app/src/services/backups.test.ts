@@ -3,7 +3,7 @@ import { isKemptBackup } from "./backups";
 
 describe("isKemptBackup", () => {
   it("rejects legacy v2 backups", () => {
-    expect(isKemptBackup({ format: "kempt-full-backup", version: 2, users: [{}], tasks: [] })).toBe(false);
+    expect(isKemptBackup({ format: "invalid-full-backup", version: 2, users: [{}], tasks: [] })).toBe(false);
   });
 
   it("accepts Kempt v3 backups", () => {

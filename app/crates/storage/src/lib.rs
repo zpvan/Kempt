@@ -4,7 +4,6 @@ mod chat;
 mod repository;
 mod secrets;
 
-
 pub use repository::SqliteRepository;
 pub use secrets::KeyringSecretStore;
 
