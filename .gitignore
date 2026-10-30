@@ -1,4 +1,5 @@
 .DS_Store
+.worktrees/
 
 # JavaScript dependencies and build outputs
 node_modules/
