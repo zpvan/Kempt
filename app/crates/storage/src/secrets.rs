@@ -1,8 +1,4 @@
-use kempt_core::{
-    branding::BUNDLE_ID,
-    error::AppError,
-    secrets::SecretStore,
-};
+use kempt_core::{branding::BUNDLE_ID, error::AppError, secrets::SecretStore};
 
 pub struct KeyringSecretStore {
     service: String,
