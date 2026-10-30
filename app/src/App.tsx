@@ -250,7 +250,7 @@ export default function App() {
     </main>
     {reminderOpen && <ReminderCenter tasks={reminders} onClose={() => setReminderOpen(false)} onEdit={setEditing} onComplete={(id) => updateStatus(id, "done")} />}
     {editing !== undefined && <TaskDialog key={editing?.id ?? `new-${newStatus}`} userId={activeUserId} task={editing} defaultStatus={newStatus} onClose={() => setEditing(undefined)} onSave={saveTask} onDelete={editing ? deleteTask : undefined} onUpdate={(task) => { setEditing(undefined); setProgressTask(task); }} />}
-    {dataOpen && <DataDialog userId={activeUserId} accountKey="local" localMode={false} localTasks={[]} localTrash={[]} onLocalRestore={() => {}} onClose={() => setDataOpen(false)} onOpenTrash={() => { setDataOpen(false); setTrashOpen(true); }} />}
+    {dataOpen && <DataDialog userId={activeUserId} onClose={() => setDataOpen(false)} onOpenTrash={() => { setDataOpen(false); setTrashOpen(true); }} />}
     {trashOpen && <RecycleBinDialog tasks={trashQuery.data ?? []} pending={restoreMutation.isPending || purgeMutation.isPending} onClose={() => setTrashOpen(false)} onRestore={restoreTask} onPurge={purgeTask} />}
     {editingLog && <LogEditDialog userId={activeUserId} task={editingLog.task} log={editingLog.log} onClose={() => setEditingLog(null)} onSave={saveEditedLog} />}
     {userOpen && <UserDialog users={users} currentUserId={activeUserId} creating={createUserMutation.isPending} deleting={deleteUserMutation.isPending} onClose={() => setUserOpen(false)} onSwitch={switchUser} onCreate={addUser} onDelete={deleteUser} />}
