@@ -218,7 +218,7 @@ export default function App() {
   return <div className="app-shell">
     <div className="ambient ambient-one" /><div className="ambient ambient-two" /><div className="noise" />
     <aside className="sidebar glass-panel">
-      <button className="brand" onClick={() => setView("focus")} aria-label={t("backToday")}><span className="brand-mark"><i /><i /><i /></span><span className="brand-name">{language === "zh" ? "Kempt" : "Kempt"}</span></button>
+      <button className="brand" onClick={() => setView("focus")} aria-label={t("backToday")}><span className="brand-mark"><i /><i /><i /></span><span className="brand-name">{language === "zh" ? "企理" : "Kempt"}</span></button>
       <nav className="main-nav" aria-label={t("mainNavigation")}>{navItems.map(({ id, icon: Icon }) => <button key={id} className={view === id ? "active" : ""} onClick={() => setView(id)}><Icon size={20} /><span>{t(id === "focus" ? "today" : id)}</span></button>)}</nav>
       <div className="sidebar-foot"><Cloud size={16} /><span>{t(syncing ? "syncingServer" : "syncedBackup")}</span></div>
     </aside>

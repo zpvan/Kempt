@@ -43,7 +43,7 @@ const messages = {
   workItems: ["{count} 个工作项", "{count} work items"],
   projectFilter: ["按项目筛选", "Filter by project"],
   allProjects: ["全部项目", "All projects"],
-  footerSlogan: ["Kempt · 让每件事都有下一步", "Kempt · Give every task a next step"],
+  footerSlogan: ["企理 · 让每件事都有下一步", "Kempt · Give every task a next step"],
   syncingChanges: ["正在将更改同步到服务器…", "Syncing changes to the server…"],
   syncedFooter: ["任务与日志已同步到服务器，并在当前浏览器保留备份", "Tasks and logs are synced to the server and backed up in this browser"],
   switchDark: ["切换到暗色模式", "Switch to dark mode"],

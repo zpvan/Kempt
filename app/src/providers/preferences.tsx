@@ -26,7 +26,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
-    document.title = language === "zh" ? "Kempt" : "Kempt";
+    document.title = language === "zh" ? "企理" : "Kempt";
     localStorage.setItem("kempt.language", language);
   }, [language]);
 
