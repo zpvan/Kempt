@@ -20,7 +20,7 @@ export async function legacyLocalMigration(service: WorkspaceService, storage: S
   const backup: FullBackup = {
     app: "Kempt",
     format: "kempt-full-backup",
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     users: [{ id: "shella", name: "Shella", isDefault: true, createdAt: new Date(0).toISOString() }],
     tasks: [...active, ...trash].map((task) => ({

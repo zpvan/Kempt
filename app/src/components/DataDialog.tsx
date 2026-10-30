@@ -6,17 +6,12 @@ import { usePreferences } from "@/providers/preferences";
 import { useRpcMutation, useRpcQuery } from "@/services/rpc";
 import { useFiles } from "@/services/fileProvider";
 import { BRAND } from "@/branding";
+import { isKemptBackup } from "@/services/backups";
 
 interface Props {
   userId: string;
   onClose: () => void;
   onOpenTrash: () => void;
-}
-
-function isFullBackup(value: unknown): value is FullBackup {
-  if (!value || typeof value !== "object") return false;
-  const backup = value as Partial<FullBackup>;
-  return ((backup.format === "kempt-full-backup" && backup.version === 2) || (backup.format === "kempt-full-backup" && backup.version === 3)) && Array.isArray(backup.users) && backup.users.length > 0 && Array.isArray(backup.tasks);
 }
 
 export default function DataDialog({ userId, onClose, onOpenTrash }: Props) {
@@ -49,7 +44,7 @@ export default function DataDialog({ userId, onClose, onOpenTrash }: Props) {
       const file = await files.readJson();
       if (!file) return;
       const parsed: unknown = JSON.parse(file.contents);
-      if (!isFullBackup(parsed)) throw new Error(t("invalidBackup"));
+      if (!isKemptBackup(parsed)) throw new Error(t("invalidBackup"));
       setBackup(parsed); setFileName(file.fileName);
     } catch (reason) {
       setError(reason instanceof SyntaxError ? t("invalidJson") : reason instanceof Error ? reason.message : t("readFileFailed"));

@@ -14,7 +14,6 @@ import { BrowserFilePort } from "./services/browserFiles";
 import { TauriFilePort } from "./services/tauriFiles";
 import { NotificationProvider } from "./services/notificationProvider";
 import { BrowserNotificationPort, TauriNotificationPort } from "./services/notifications";
-import { migrateKemptStorage } from "./services/storageMigration";
 
 const queryClient = new QueryClient();
 const workspaceService = "__TAURI_INTERNALS__" in window
@@ -22,7 +21,6 @@ const workspaceService = "__TAURI_INTERNALS__" in window
   : new HttpWorkspaceService();
 const fileService = "__TAURI_INTERNALS__" in window ? new TauriFilePort() : new BrowserFilePort();
 const notificationService = "__TAURI_INTERNALS__" in window ? new TauriNotificationPort() : new BrowserNotificationPort();
-migrateKemptStorage(localStorage);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

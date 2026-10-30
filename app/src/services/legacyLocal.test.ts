@@ -38,7 +38,7 @@ describe("legacy local migration", () => {
     const call = vi.fn().mockResolvedValue({});
     const service = { call } as unknown as WorkspaceService;
     await legacyLocalMigration(service, storageWithLegacyTasks());
-    expect(call).toHaveBeenCalledWith("legacy.importLocal", expect.objectContaining({ backup: expect.objectContaining({ version: 2 }) }));
+    expect(call).toHaveBeenCalledWith("legacy.importLocal", expect.objectContaining({ backup: expect.objectContaining({ version: 3 }) }));
     expect(storage.getItem(MIGRATION_MARKER)).toBe("1");
   });
 
