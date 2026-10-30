@@ -6,18 +6,17 @@ Platform for local artifacts: macOS arm64
 ## Passed locally
 
 - TypeScript `tsc -b`.
-- Vitest: 5 files, 12 tests, including brand and localStorage migration coverage.
+- Vitest: 5 files, 10 tests, including brand and Kempt v3 backup validation.
 - Playwright: 3 browser workflows against a real Kempt server:
   - default English `Kempt`, switching to Chinese `企理`, and preference persistence after reload;
   - task creation and persistence after reload;
   - workspace creation and switching.
-- Rust workspace: 62 tests across Core, Storage, Server, and Tauri adapter suites, including SQLite snapshot migration, credential migration, and v2/v3 backup compatibility.
+- Rust workspace: 56 tests across Core, Storage, Server, and Tauri adapter suites.
 - `cargo fmt --all --check` and `cargo clippy --workspace --all-targets -- -D warnings`: passed.
-- ESLint: no errors; 9 warnings remain in existing hook patterns.
+- ESLint: no errors; existing hook warnings remain.
 - Vite production build.
 - `scripts/check-brand.sh`: package, binary, and product names are Kempt.
-- Release workflow YAML syntax and job structure checked with a YAML parser.
-- Tauri release build produced `Kempt.app`; no Chinese `.app` was produced by this build.
+- `docs/superpowers/` is ignored and untracked.
 
 ## Measured artifacts
 
@@ -39,10 +38,9 @@ These are local single-architecture release measurements, not estimates for Wind
 - The GitHub Actions workflow has not been triggered, so hosted Artifacts and Releases have not been verified.
 - Native desktop checklist items in `app/e2e/desktop-smoke.md` remain unchecked.
 - Cold start with 1,000 tasks and idle memory have not been measured.
-- No DMG was built in this Kempt worktree. An earlier build of the old brand failed because Finder AppleEvent timed out (`Finder -1712`).
+- No DMG was built in this worktree.
 - Full `actionlint` was unavailable because installation failed due to network timeouts.
 - `rust-cache` and `tauri-action` are pinned to commit SHAs. Other Actions still use major/stable tags because their SHAs could not be resolved over the network.
-- Real OS Keychain migration is covered with in-memory contract tests, not by moving credentials between actual user Keychains in this environment.
 
 ## Dependency audit
 
