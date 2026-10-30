@@ -13,7 +13,6 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
-tauri-plugin-fs = "2"
 tauri-plugin-notification = "2"
 kempt-core = { path = "../crates/core" }
 kempt-storage = { path = "../crates/storage" }

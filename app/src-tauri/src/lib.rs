@@ -24,6 +24,35 @@ async fn rpc(
     rpc_inner(&state.service, &method, payload).await
 }
 
+fn validate_backup_path(path: &std::path::Path) -> Result<(), AppError> {
+    if path.extension().is_some_and(|extension| extension == "json") {
+        Ok(())
+    } else {
+        Err(AppError::Validation("Backup files must use the .json extension".into()))
+    }
+}
+
+#[tauri::command]
+fn read_backup(path: String) -> Result<String, ErrorBody> {
+    let path = std::path::Path::new(&path);
+    validate_backup_path(path).map_err(|error| error.body())?;
+    let metadata = std::fs::metadata(path).map_err(|error| AppError::Storage(error.to_string()).body())?;
+    if metadata.len() > 50 * 1024 * 1024 {
+        return Err(AppError::Validation("Backup file exceeds 50 MiB".into()).body());
+    }
+    std::fs::read_to_string(path).map_err(|error| AppError::Storage(error.to_string()).body())
+}
+
+#[tauri::command]
+fn write_backup(path: String, contents: String) -> Result<(), ErrorBody> {
+    let path = std::path::Path::new(&path);
+    validate_backup_path(path).map_err(|error| error.body())?;
+    if contents.len() > 50 * 1024 * 1024 {
+        return Err(AppError::Validation("Backup file exceeds 50 MiB".into()).body());
+    }
+    std::fs::write(path, contents).map_err(|error| AppError::Storage(error.to_string()).body())
+}
+
 fn data_dir() -> Result<PathBuf, AppError> {
     ProjectDirs::from("com", "nohea", "kempt")
         .map(|dirs| dirs.data_dir().to_path_buf())
@@ -45,10 +74,9 @@ pub fn run() {
     let service = build_service().unwrap_or_else(|error| panic!("Failed to initialize application: {error}"));
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
         .manage(AppState { service: Arc::new(service) })
-        .invoke_handler(tauri::generate_handler![rpc])
+        .invoke_handler(tauri::generate_handler![rpc, read_backup, write_backup])
         .run(tauri::generate_context!())
         .expect("error while running Hea Workflow");
 }

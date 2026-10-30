@@ -21,6 +21,7 @@ import { clearDraft, logDraftKey, progressDraftKey, taskDraftKey, taskItemsDraft
 import { useRpcMutation, useRpcQuery } from "@/services/rpc";
 import { useWorkspaceService } from "@/services/provider";
 import { legacyLocalMigration } from "@/services/legacyLocal";
+import { useNotifications } from "@/services/notificationProvider";
 import "./App.css";
 
 type View = "focus" | "board" | "projects" | "gantt" | "logs";
@@ -37,6 +38,7 @@ const queryKey = (method: string, payload: unknown = {}) => ["rpc", method, JSON
 export default function App() {
   const { theme, language, toggleTheme, toggleLanguage, t } = usePreferences();
   const service = useWorkspaceService();
+  const notifications = useNotifications();
   const queryClient = useQueryClient();
   const migrationAttempted = useRef(false);
   const [currentUser, setCurrentUser] = useState(() => localStorage.getItem("kempt.currentUser") || "shella");
@@ -91,14 +93,20 @@ export default function App() {
   const projects = useMemo(() => Array.from(new Set(tasks.map((task) => task.project))), [tasks]);
   const reminders = useMemo(() => dueSoonTasks(tasks), [tasks]);
   useEffect(() => {
-    if (!("Notification" in window) || Notification.permission !== "granted" || !reminders.length) return;
+    if (!reminders.length) return;
     const dayKey = format(new Date(), "yyyy-MM-dd");
     let sent: string[] = [];
     try { sent = JSON.parse(localStorage.getItem("kempt.notifications") || "[]"); } catch { sent = []; }
     const fresh = reminders.filter((task) => !sent.includes(`${dayKey}:${task.id}`));
-    fresh.forEach((task) => new Notification(t("notificationTitle"), { body: `${task.title} · ${reminderLabel(task, language)}` }));
-    if (fresh.length) localStorage.setItem("kempt.notifications", JSON.stringify([...sent, ...fresh.map((task) => `${dayKey}:${task.id}`)].slice(-80)));
-  }, [reminders, language, t]);
+    if (!fresh.length) return;
+    void notifications.isGranted().then((granted) => {
+      if (!granted) return;
+      fresh.forEach((task) => {
+        void notifications.notify(t("notificationTitle"), `${task.title} · ${reminderLabel(task, language)}`).catch(() => {});
+      });
+      localStorage.setItem("kempt.notifications", JSON.stringify([...sent, ...fresh.map((task) => `${dayKey}:${task.id}`)].slice(-80)));
+    }).catch(() => {});
+  }, [reminders, language, t, notifications]);
   const filtered = useMemo(() => tasks.filter((task) => (project === "all" || task.project === project) && (!search || `${task.title}${task.description}${task.project}${(task.logs || []).map((log) => log.content).join("")}`.toLowerCase().includes(search.toLowerCase()))), [tasks, project, search]);
   const done = tasks.filter((task) => task.status === "done").length;
   const doing = tasks.filter((task) => task.status === "doing").length;
