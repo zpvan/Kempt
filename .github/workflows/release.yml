@@ -1,0 +1,85 @@
+name: release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, name: macos }
+          - { os: windows-latest, name: windows-x86_64 }
+          - { os: ubuntu-latest, name: linux-x86_64 }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: app
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+        working-directory: app
+      - run: npm run check && npm test && npm run lint && npm run build:ui
+        working-directory: app
+      - run: cargo test --workspace
+        working-directory: app
+      - if: runner.os == 'Linux'
+        run: npx playwright install-deps chromium
+        working-directory: app
+      - run: npx playwright install chromium
+        working-directory: app
+      - run: npm run test:e2e
+        working-directory: app
+      - run: cargo build --release -p kempt-server
+        working-directory: app
+      - uses: tauri-apps/tauri-action@51a9f1156b33df106d827c3a78f8f894946c5faa # v0.5
+        with:
+          projectPath: app
+      - shell: bash
+        run: |
+          mkdir -p artifacts
+          server="kempt-server-${{ matrix.name }}"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp app/target/release/kempt-server.exe "artifacts/${server}.exe"
+          else
+            cp app/target/release/kempt-server "artifacts/${server}"
+          fi
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            tar -czf artifacts/kempt-macos-app.tar.gz -C app/src-tauri/target/release/bundle/macos .
+          fi
+          find app/src-tauri/target/release/bundle -type f \( -name '*.dmg' -o -name '*.msi' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' \) -exec cp {} artifacts/ \;
+          cd artifacts && shasum -a 256 * > "SHA256SUMS-${{ matrix.name }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kempt-${{ matrix.name }}
+          path: artifacts/*
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - run: gh release create "${{ github.ref_name }}" release-assets/* --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
