@@ -19,6 +19,7 @@ pub struct AssistantMessage {
     pub model_id: Option<String>,
     pub role: String,
     pub content: String,
+    #[ts(type = "number")]
     pub created_at: i64,
 }
 
@@ -42,7 +43,9 @@ pub struct AssistantAction {
     pub payload: Value,
     pub summary: String,
     pub status: String,
+    #[ts(type = "number")]
     pub created_at: i64,
+    #[ts(type = "number")]
     pub decided_at: Option<i64>,
 }
 

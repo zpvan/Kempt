@@ -13,9 +13,11 @@ use ts_rs::TS;
 #[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
 pub struct BackupUser {
     pub id: String,
+    #[ts(optional)]
     pub owner_union_id: Option<String>,
     pub name: String,
     pub is_default: bool,
+    #[ts(optional)]
     pub created_at: Option<String>,
 }
 
@@ -33,8 +35,11 @@ pub struct BackupTask {
 #[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
 pub struct BackupPreferences {
+    #[ts(optional)]
     pub theme: Option<String>,
+    #[ts(optional)]
     pub language: Option<String>,
+    #[ts(optional)]
     pub current_user: Option<String>,
 }
 
@@ -48,6 +53,7 @@ pub struct FullBackup {
     pub exported_at: String,
     pub users: Vec<BackupUser>,
     pub tasks: Vec<BackupTask>,
+    #[ts(optional)]
     pub preferences: Option<BackupPreferences>,
 }
 

@@ -1,1 +1,0 @@
-ALTER TABLE `work_tasks` ADD `position` int DEFAULT 0 NOT NULL;

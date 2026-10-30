@@ -3,4 +3,4 @@ import type { BackupPreferences } from "./BackupPreferences";
 import type { BackupTask } from "./BackupTask";
 import type { BackupUser } from "./BackupUser";
 
-export type FullBackup = { app: string, format: string, version: number, exportedAt: string, users: Array<BackupUser>, tasks: Array<BackupTask>, preferences: BackupPreferences | null, };
+export type FullBackup = { app: string, format: string, version: number, exportedAt: string, users: Array<BackupUser>, tasks: Array<BackupTask>, preferences?: BackupPreferences, };

@@ -40,7 +40,7 @@ export default function TaskDialog({ userId, task, onClose, onSave, onDelete, de
     const items = checklist.map((item, position) => ({ ...item, completed: form.status === "done" ? true : item.completed, position }));
     const status = items.length > 0 && items.every((item) => item.completed) ? "done" : form.status;
     const progress = items.length ? (status === "done" ? 100 : checklistProgress(items)) : form.status === "done" ? 100 : form.progress;
-    onSave({ title: form.title.trim(), description: form.description.trim(), project: form.project.trim() || t("defaultProject"), status, priority: form.priority, startDate: form.startDate, dueDate: form.dueDate, progress, parentId: form.parentId, sourceUrl: form.sourceUrl?.trim() || undefined, checklist: items }, task?.id);
+    onSave({ title: form.title.trim(), description: form.description.trim(), project: form.project.trim() || t("defaultProject"), status, priority: form.priority, startDate: form.startDate, dueDate: form.dueDate, progress, position: form.position ?? 0, parentId: form.parentId ?? null, sourceUrl: form.sourceUrl?.trim() || null, deletedAt: form.deletedAt ?? null, logs: form.logs ?? [], checklist: items }, task?.id);
   };
   const addItem = () => {
     if (!newItem.trim()) return;

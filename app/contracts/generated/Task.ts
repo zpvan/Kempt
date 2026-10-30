@@ -4,4 +4,4 @@ import type { Priority } from "./Priority";
 import type { Status } from "./Status";
 import type { WorkLog } from "./WorkLog";
 
-export type Task = { id: string, title: string, description: string, project: string, status: Status, priority: Priority, startDate: string, dueDate: string, progress: number, position: bigint, parentId: string | null, sourceUrl: string | null, createdAt: bigint, deletedAt: string | null, logs: Array<WorkLog>, checklist: Array<ChecklistItem>, };
+export type Task = { id: string, title: string, description: string, project: string, status: Status, priority: Priority, startDate: string, dueDate: string, progress: number, position: number, parentId: string | null, sourceUrl: string | null, createdAt: number, deletedAt: string | null, logs: Array<WorkLog>, checklist: Array<ChecklistItem>, };

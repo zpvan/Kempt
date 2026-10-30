@@ -16,6 +16,7 @@ const day = (offset: number) => format(addDays(startOfDay(new Date()), offset), 
 const task = (id: string, title: string, description: string, project: string, status: Status, priority: Priority, start: number, due: number, progress: number): Task => ({
   id, title, description, project, status, priority,
   startDate: day(start), dueDate: day(due), progress, createdAt: Date.now() - (Number(id.replace(/\D/g, "")) || 0),
+  position: 0, parentId: null, sourceUrl: null, deletedAt: null, logs: [], checklist: [],
 });
 
 export function excelTasks(): Task[] {
@@ -39,7 +40,8 @@ export function excelTasks(): Task[] {
 
 export const emptyTask = (): Omit<Task, "id" | "createdAt"> => ({
   title: "", description: "", project: "个人工作", status: "todo", priority: "medium",
-  startDate: day(0), dueDate: day(3), progress: 0,
+  startDate: day(0), dueDate: day(3), progress: 0, position: 0,
+  parentId: null, sourceUrl: null, deletedAt: null, logs: [], checklist: [],
 });
 
 export const formatShort = (date: string, language: Language = "zh") => format(new Date(`${date}T12:00:00`), language === "zh" ? "M月d日" : "MMM d");
@@ -87,12 +89,12 @@ export function parseTaskImport(input: unknown, language: Language = "zh"): Task
       dueDate: value.dueDate,
       progress: typeof value.progress === "number" && Number.isFinite(value.progress) ? Math.max(0, Math.min(100, value.progress)) : status === "done" ? 100 : 0,
       position: typeof value.position === "number" && Number.isFinite(value.position) ? Math.max(0, Math.round(value.position)) : 0,
-      parentId: typeof value.parentId === "string" ? value.parentId : undefined,
-      sourceUrl: typeof value.sourceUrl === "string" ? value.sourceUrl : undefined,
+      parentId: typeof value.parentId === "string" ? value.parentId : null,
+      sourceUrl: typeof value.sourceUrl === "string" ? value.sourceUrl : null,
       logs,
       checklist,
       createdAt: typeof value.createdAt === "number" && Number.isFinite(value.createdAt) ? value.createdAt : Date.now() + index,
-      deletedAt: typeof value.deletedAt === "string" && !Number.isNaN(Date.parse(value.deletedAt)) ? new Date(value.deletedAt) : undefined,
+      deletedAt: typeof value.deletedAt === "string" && !Number.isNaN(Date.parse(value.deletedAt)) ? value.deletedAt : null,
     };
   });
   if (!tasks.length) throw new Error(message("JSON 中没有可导入的任务", "The JSON contains no tasks to import"));

@@ -29,6 +29,7 @@ pub struct WorkLog {
     pub content: String,
     pub progress: u8,
     pub status: Status,
+    #[ts(type = "number")]
     pub created_at: i64,
 }
 
@@ -39,7 +40,9 @@ pub struct ChecklistItem {
     pub id: String,
     pub content: String,
     pub completed: bool,
+    #[ts(type = "number")]
     pub position: i64,
+    #[ts(type = "number")]
     pub created_at: i64,
 }
 
@@ -56,12 +59,17 @@ pub struct Task {
     pub start_date: String,
     pub due_date: String,
     pub progress: u8,
+    #[serde(default)]
+    #[ts(type = "number")]
     pub position: i64,
     pub parent_id: Option<String>,
     pub source_url: Option<String>,
+    #[ts(type = "number")]
     pub created_at: i64,
     pub deleted_at: Option<String>,
+    #[serde(default)]
     pub logs: Vec<WorkLog>,
+    #[serde(default)]
     pub checklist: Vec<ChecklistItem>,
 }
 

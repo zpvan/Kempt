@@ -87,7 +87,6 @@ export default function App() {
       .catch((reason: unknown) => mutationError(reason instanceof Error ? reason : new Error(String(reason))));
   }, [service, queryClient]);
   useEffect(() => { localStorage.setItem("kempt.currentUser", activeUserId); }, [activeUserId]);
-  useEffect(() => { if (usersQuery.data && !usersQuery.data.some((user) => user.id === currentUser)) setCurrentUser(usersQuery.data[0]?.id || "shella"); }, [usersQuery.data, currentUser]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => { setToast(""); setLastDeleted(null); }, lastDeleted ? 6500 : 3200); return () => clearTimeout(timer); }, [toast, lastDeleted]);
   const projects = useMemo(() => Array.from(new Set(tasks.map((task) => task.project))), [tasks]);
   const reminders = useMemo(() => dueSoonTasks(tasks), [tasks]);
@@ -107,7 +106,7 @@ export default function App() {
 
   const saveTask = (data: Omit<Task, "id" | "createdAt">, id?: string) => {
     const original = id ? tasks.find((task) => task.id === id) : undefined;
-    const task: Task = { ...data, id: id ?? uid(), createdAt: original?.createdAt ?? Date.now(), position: original?.position ?? 0, logs: original?.logs };
+    const task: Task = { ...data, id: id ?? uid(), createdAt: original?.createdAt ?? Date.now(), position: original?.position ?? 0, logs: original?.logs ?? [] };
     upsert.mutate({ userId: activeUserId, task }, {
       onSuccess: (next) => {
         applyTasks(next);
@@ -144,7 +143,7 @@ export default function App() {
   };
   const reorderTasks = (orderedIds: string[]) => {
     const positions = new Map(orderedIds.map((id, index) => [id, (index + 1) * 100]));
-    applyTasks([...tasks].map((task) => positions.has(task.id) ? { ...task, position: positions.get(task.id) } : task).sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || b.createdAt - a.createdAt));
+    applyTasks([...tasks].map((task) => positions.has(task.id) ? { ...task, position: positions.get(task.id) ?? task.position } : task).sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || b.createdAt - a.createdAt));
     reorderMutation.mutate({ userId: activeUserId, orderedIds }, { onSuccess: applyTasks, onError: mutationError });
   };
   const deleteTask = (id: string) => {

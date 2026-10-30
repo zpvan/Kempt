@@ -1,1 +1,0 @@
-ALTER TABLE `work_tasks` ADD `deletedAt` timestamp;
