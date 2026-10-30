@@ -1,3 +1,7 @@
+mod repository;
+
+pub use repository::SqliteRepository;
+
 use kempt_core::error::AppError;
 use rusqlite::Connection;
 use std::{
