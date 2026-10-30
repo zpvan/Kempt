@@ -5,6 +5,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use kempt_core::{
     backup::{BackupRepository, BackupTask, BackupUser, FullBackup, RestoreSummary},
+    branding::{BACKUP_FORMAT_V3, PRODUCT_NAME},
     error::AppError,
     repository::TaskRepository,
 };
@@ -26,9 +27,9 @@ impl BackupRepository for SqliteRepository {
         }
         tasks.sort_by(|a, b| b.task.created_at.cmp(&a.task.created_at));
         Ok(FullBackup {
-            app: "Kempt".into(),
-            format: "kempt-full-backup".into(),
-            version: 2,
+            app: PRODUCT_NAME.into(),
+            format: BACKUP_FORMAT_V3.into(),
+            version: 3,
             exported_at: Utc::now().to_rfc3339(),
             users: users
                 .into_iter()

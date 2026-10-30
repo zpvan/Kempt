@@ -5,6 +5,7 @@ import type { FullBackup } from "@contracts/types";
 import { usePreferences } from "@/providers/preferences";
 import { useRpcMutation, useRpcQuery } from "@/services/rpc";
 import { useFiles } from "@/services/fileProvider";
+import { BRAND } from "@/branding";
 
 interface Props {
   userId: string;
@@ -15,7 +16,7 @@ interface Props {
 function isFullBackup(value: unknown): value is FullBackup {
   if (!value || typeof value !== "object") return false;
   const backup = value as Partial<FullBackup>;
-  return backup.format === "kempt-full-backup" && backup.version === 2 && Array.isArray(backup.users) && backup.users.length > 0 && Array.isArray(backup.tasks);
+  return ((backup.format === "kempt-full-backup" && backup.version === 2) || (backup.format === "kempt-full-backup" && backup.version === 3)) && Array.isArray(backup.users) && backup.users.length > 0 && Array.isArray(backup.tasks);
 }
 
 export default function DataDialog({ userId, onClose, onOpenTrash }: Props) {
@@ -37,7 +38,7 @@ export default function DataDialog({ userId, onClose, onOpenTrash }: Props) {
     setError("");
     try {
       const payload: FullBackup = { ...exportData, preferences: { theme, language, currentUser: userId } };
-      await files.saveJson(`Kempt-${format(new Date(), "yyyy-MM-dd")}.json`, JSON.stringify(payload, null, 2));
+      await files.saveJson(BRAND.backupFile(format(new Date(), "yyyy-MM-dd")), JSON.stringify(payload, null, 2));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t("readFileFailed"));
     }

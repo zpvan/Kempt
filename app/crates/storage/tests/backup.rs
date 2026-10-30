@@ -3,6 +3,15 @@ mod common;
 use common::*;
 
 #[test]
+fn new_export_uses_kempt_v3() {
+    let fixture = Fixture::new();
+    let backup = fixture.service.export_backup().unwrap();
+    assert_eq!(backup.app, "Kempt");
+    assert_eq!(backup.format, "kempt-full-backup");
+    assert_eq!(backup.version, 3);
+}
+
+#[test]
 fn backup_round_trip_preserves_tasks_logs_checklist_and_trash() {
     let fixture = Fixture::new();
     let mut task = sample_task("active");
@@ -76,6 +85,6 @@ fn restore_ignores_legacy_owner_and_rejects_invalid_version() {
     let mut backup = fixture.service.export_backup().unwrap();
     backup.users[0].owner_union_id = Some("another-account".into());
     assert!(fixture.service.import_backup(backup.clone()).is_ok());
-    backup.version = 3;
+    backup.version = 4;
     assert!(fixture.service.import_backup(backup).is_err());
 }
