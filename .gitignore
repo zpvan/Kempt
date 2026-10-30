@@ -1,0 +1,22 @@
+.DS_Store
+
+# JavaScript dependencies and build outputs
+node_modules/
+dist/
+playwright-report/
+test-results/
+
+# Rust build outputs
+target/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local application data
+*.db
+*.db-shm
+*.db-wal
+backups/
+logs/
