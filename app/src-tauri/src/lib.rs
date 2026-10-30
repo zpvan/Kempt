@@ -6,7 +6,9 @@ use kempt_core::{
     error::{AppError, ErrorBody},
     service::AppService,
 };
-use kempt_storage::{migrate_credentials, open_kempt_database, KeyringSecretStore, SqliteRepository};
+use kempt_storage::{
+    migrate_credentials, open_kempt_database, KeyringSecretStore, SqliteRepository,
+};
 use std::{path::PathBuf, sync::Arc};
 
 pub struct AppState {

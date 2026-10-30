@@ -74,7 +74,7 @@ The Playwright configuration starts a real Rust server with a temporary SQLite d
 
 ## Data and credentials
 
-The default database is `kempt.db` in the OS application data directory. Migrations and restore operations create automatic SQLite backups. The server accepts loopback addresses only.
+The default database is `kempt.db` in the Kempt OS application data directory. Migrations and restore operations create automatic SQLite backups. The server accepts loopback addresses only. New installations default to English; the interface can be switched to Chinese (企理) and preserves that preference.
 
 AI is optional and online. Credentials use the OS keychain by default. For an explicit process-only fallback:
 

@@ -2,9 +2,13 @@ pub mod assets;
 pub mod http;
 
 use directories::ProjectDirs;
-use kempt_core::{ai::ReqwestAiTransport, assistant::AssistantRepository, error::AppError, service::AppService};
-use kempt_storage::{migrate_credentials, open_kempt_database, KeyringSecretStore, SqliteRepository};
 use http::ServerService;
+use kempt_core::{
+    ai::ReqwestAiTransport, assistant::AssistantRepository, error::AppError, service::AppService,
+};
+use kempt_storage::{
+    migrate_credentials, open_kempt_database, KeyringSecretStore, SqliteRepository,
+};
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
@@ -42,7 +46,8 @@ pub async fn serve(options: ServeOptions) -> Result<(), AppError> {
     options.validate()?;
     let data_dir = options.data_dir();
     let legacy_dir = options.data_dir.is_none().then(legacy_data_dir);
-    let service = build_service_with_migration(&data_dir, legacy_dir.as_deref(), options.session_secrets)?;
+    let service =
+        build_service_with_migration(&data_dir, legacy_dir.as_deref(), options.session_secrets)?;
     let _log_guard = init_logging(&data_dir)?;
     let address = format!("{}:{}", options.host, options.port);
     let listener = tokio::net::TcpListener::bind(&address)

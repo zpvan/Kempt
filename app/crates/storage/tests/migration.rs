@@ -17,7 +17,11 @@ impl MigrationDirs {
         let new_dir = root.path().join("new");
         std::fs::create_dir_all(&old_dir).unwrap();
         std::fs::create_dir_all(&new_dir).unwrap();
-        Self { _root: root, old_dir, new_dir }
+        Self {
+            _root: root,
+            old_dir,
+            new_dir,
+        }
     }
 
     fn create_legacy_with_task(&self, title: &str) {
@@ -46,7 +50,10 @@ fn migrates_legacy_snapshot() {
     dirs.create_legacy_with_task("legacy-task");
     let database = open_kempt_database(&dirs.new_dir, &dirs.old_dir).unwrap();
     let repo = SqliteRepository::new(database);
-    assert_eq!(repo.list_tasks("shella", false).unwrap()[0].title, "legacy-task");
+    assert_eq!(
+        repo.list_tasks("shella", false).unwrap()[0].title,
+        "legacy-task"
+    );
     assert!(dirs.old_dir.join("kempt.db").exists());
 }
 
@@ -57,7 +64,10 @@ fn never_overwrites_existing_new_database() {
     dirs.create_new_with_task("new-task");
     let database = open_kempt_database(&dirs.new_dir, &dirs.old_dir).unwrap();
     let repo = SqliteRepository::new(database);
-    assert_eq!(repo.list_tasks("shella", false).unwrap()[0].title, "new-task");
+    assert_eq!(
+        repo.list_tasks("shella", false).unwrap()[0].title,
+        "new-task"
+    );
 }
 
 #[test]

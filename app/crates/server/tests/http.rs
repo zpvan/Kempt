@@ -1,5 +1,5 @@
-use kempt_server::{build_router, ServeOptions};
 use http_body_util::BodyExt;
+use kempt_server::{build_router, ServeOptions};
 use tower::ServiceExt;
 
 #[tokio::test]

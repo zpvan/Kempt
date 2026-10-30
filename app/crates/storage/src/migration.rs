@@ -22,10 +22,7 @@ pub fn open_kempt_database(new_dir: &Path, legacy_dir: &Path) -> Result<Database
         let legacy = Connection::open_with_flags(&legacy_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
             .map_err(storage_error)?;
         legacy
-            .execute(
-                "VACUUM INTO ?1",
-                [temporary.to_string_lossy().to_string()],
-            )
+            .execute("VACUUM INTO ?1", [temporary.to_string_lossy().to_string()])
             .map_err(storage_error)?;
         drop(legacy);
         let check = Connection::open(&temporary).map_err(storage_error)?;

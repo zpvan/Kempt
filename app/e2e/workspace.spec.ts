@@ -1,5 +1,16 @@
 import { test, expect } from "@playwright/test";
 
+test("defaults to English and persists Chinese selection", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".brand-name")).toHaveText("Kempt");
+  await page.locator(".language-button").click();
+  await expect(page.locator(".brand-name")).toHaveText("企理");
+  await page.reload();
+  await expect(page.locator(".brand-name")).toHaveText("企理");
+  await page.locator(".language-button").click();
+  await expect(page.locator(".brand-name")).toHaveText("Kempt");
+});
+
 test("creates and reloads a persisted task", async ({ page }) => {
   await page.goto("/");
   await page.locator(".new-button").click();

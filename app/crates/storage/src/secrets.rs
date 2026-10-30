@@ -8,6 +8,12 @@ pub struct KeyringSecretStore {
     service: String,
 }
 
+impl Default for KeyringSecretStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl KeyringSecretStore {
     pub fn new() -> Self {
         Self {
@@ -22,7 +28,8 @@ impl KeyringSecretStore {
     }
 
     fn entry(&self, reference: &str) -> Result<keyring::Entry, AppError> {
-        keyring::Entry::new(&self.service, reference).map_err(|e| AppError::SecretStore(e.to_string()))
+        keyring::Entry::new(&self.service, reference)
+            .map_err(|e| AppError::SecretStore(e.to_string()))
     }
 }
 
