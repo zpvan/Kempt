@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
-import { Check, LogOut, Plus, Trash2, UserRound, UsersRound, X } from "lucide-react";
+import { Check, Plus, Trash2, UserRound, UsersRound, X } from "lucide-react";
 import type { AppUser } from "@contracts/types";
 import { usePreferences } from "@/providers/preferences";
 
 interface Props {
   users: AppUser[];
   currentUserId: string;
-  authName: string;
-  onLogout: () => void;
-  onOpenSecurity: () => void;
   creating: boolean;
   deleting: boolean;
   onClose: () => void;
@@ -17,7 +14,7 @@ interface Props {
   onDelete: (user: AppUser) => void;
 }
 
-export default function UserDialog({ users, currentUserId, authName, onLogout, onOpenSecurity, creating, deleting, onClose, onSwitch, onCreate, onDelete }: Props) {
+export default function UserDialog({ users, currentUserId, creating, deleting, onClose, onSwitch, onCreate, onDelete }: Props) {
   const { t } = usePreferences();
   const [name, setName] = useState("");
   const [confirming, setConfirming] = useState<AppUser | null>(null);
@@ -48,7 +45,6 @@ export default function UserDialog({ users, currentUserId, authName, onLogout, o
           <button className="button primary" type="submit" disabled={!name.trim() || creating}><Plus size={16} />{t("createUser")}</button>
         </form>
         {confirming && <div className="user-delete-confirm" role="alert"><p>{t("deleteUserConfirm", { name: confirming.name })}</p><div><button className="button secondary compact" onClick={() => setConfirming(null)}>{t("cancel")}</button><button className="button danger compact" disabled={deleting} onClick={() => { onDelete(confirming); setConfirming(null); }}><Trash2 size={14} />{t("confirm")}</button></div></div>}
-        <footer className="auth-account"><span>{t("loggedInAs", { name: authName })}</span><div className="auth-account-actions"><button className="button secondary compact" onClick={onOpenSecurity}>{t("securitySettings")}</button><button className="button secondary compact" onClick={onLogout}><LogOut size={14} />{t("signOut")}</button></div></footer>
       </div>
     </section>
   </div>;
