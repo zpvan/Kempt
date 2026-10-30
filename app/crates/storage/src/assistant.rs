@@ -79,7 +79,7 @@ impl AssistantRepository for SqliteRepository {
     }
 }
 
-fn row_to_model_record(row: &Row<'_>) -> rusqlite::Result<AssistantModelRecord> {
+pub(crate) fn row_to_model_record(row: &Row<'_>) -> rusqlite::Result<AssistantModelRecord> {
     let provider: String = row.get(1)?;
     let created_at: i64 = row.get(7)?;
     Ok(AssistantModelRecord {

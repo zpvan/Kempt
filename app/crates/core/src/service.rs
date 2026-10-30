@@ -95,38 +95,15 @@ impl<R: TaskRepository> AppService<R> {
     }
 
     pub fn set_status(&self, user_id: &str, id: &str, status: Status) -> Result<Vec<Task>, AppError> {
-        let mut task = self.repository.get_task(user_id, id)?;
-        task.status = status;
-        task.position = 0;
-        if status == Status::Done {
-            task.progress = 100;
-            for item in &mut task.checklist {
-                item.completed = true;
-            }
-        }
+        let task = self.repository.get_task(user_id, id)?;
+        let task = task_with_status(task, status);
         self.repository.upsert_task(user_id, &task)
     }
 
     pub fn add_log(&self, user_id: &str, task_id: &str, log: &WorkLog) -> Result<Vec<Task>, AppError> {
         validate_log(log)?;
-        let mut task = self.repository.get_task(user_id, task_id)?;
-        let mut log = log.clone();
-        if log.status == Status::Done {
-            for item in &mut task.checklist {
-                item.completed = true;
-            }
-        }
-        if !task.checklist.is_empty() && task.checklist.iter().all(|item| item.completed) {
-            log.status = Status::Done;
-        }
-        let progress = if task.checklist.is_empty() {
-            if log.status == Status::Done { 100 } else { log.progress }
-        } else {
-            checklist_progress(&task.checklist)
-        };
-        log.progress = progress;
-        task.status = log.status;
-        task.progress = progress;
+        let task = self.repository.get_task(user_id, task_id)?;
+        let (task, log) = task_with_log(task, log);
         self.repository.add_log(user_id, &task, &log)
     }
 
@@ -138,6 +115,39 @@ impl<R: TaskRepository> AppService<R> {
     pub fn delete_log(&self, user_id: &str, id: &str) -> Result<Vec<Task>, AppError> {
         self.repository.delete_log(user_id, id)
     }
+}
+
+pub fn task_with_status(mut task: Task, status: Status) -> Task {
+    task.status = status;
+    task.position = 0;
+    if status == Status::Done {
+        task.progress = 100;
+        for item in &mut task.checklist {
+            item.completed = true;
+        }
+    }
+    task
+}
+
+pub fn task_with_log(mut task: Task, log: &WorkLog) -> (Task, WorkLog) {
+    let mut log = log.clone();
+    if log.status == Status::Done {
+        for item in &mut task.checklist {
+            item.completed = true;
+        }
+    }
+    if !task.checklist.is_empty() && task.checklist.iter().all(|item| item.completed) {
+        log.status = Status::Done;
+    }
+    let progress = if task.checklist.is_empty() {
+        if log.status == Status::Done { 100 } else { log.progress }
+    } else {
+        checklist_progress(&task.checklist)
+    };
+    log.progress = progress;
+    task.status = log.status;
+    task.progress = progress;
+    (task, log)
 }
 
 pub fn normalize_task(mut task: Task) -> Task {

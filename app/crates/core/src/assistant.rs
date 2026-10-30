@@ -80,6 +80,15 @@ pub trait ProviderCatalog: Send + Sync {
         config: &AssistantModel,
         api_key: Option<&str>,
     ) -> Result<AvailableModelsResult, AppError>;
+
+    async fn chat(
+        &self,
+        _config: &AssistantModel,
+        _api_key: Option<&str>,
+        _context: crate::chat::ChatContext,
+    ) -> Result<crate::chat::ChatResult, AppError> {
+        Err(AppError::Network("Chat is not configured".into()))
+    }
 }
 
 pub trait AssistantRepository: TaskRepository {
@@ -166,7 +175,7 @@ impl<R: AssistantRepository> AppService<R> {
         Ok(models)
     }
 
-    fn resolve_api_key(&self, existing: Option<&AssistantModelRecord>, supplied: Option<&str>) -> Result<Option<String>, AppError> {
+    pub(crate) fn resolve_api_key(&self, existing: Option<&AssistantModelRecord>, supplied: Option<&str>) -> Result<Option<String>, AppError> {
         if let Some(key) = supplied {
             return Ok(Some(key.trim().to_string()));
         }
@@ -182,7 +191,7 @@ impl<R: AssistantRepository> AppService<R> {
         self.secrets.as_deref().ok_or_else(|| AppError::SecretStore("Secret store is not configured".into()))
     }
 
-    fn catalog(&self) -> Result<&dyn ProviderCatalog, AppError> {
+    pub(crate) fn catalog(&self) -> Result<&dyn ProviderCatalog, AppError> {
         self.catalog.as_deref().ok_or_else(|| AppError::Network("AI provider is not configured".into()))
     }
 }

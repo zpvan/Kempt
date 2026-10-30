@@ -1,5 +1,6 @@
 mod assistant;
 mod backup;
+mod chat;
 mod repository;
 mod secrets;
 
