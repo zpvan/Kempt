@@ -1,6 +1,6 @@
 use crate::{
     error::AppError,
-    model::{Status, Task, WorkLog},
+    model::{Task, WorkLog},
 };
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;

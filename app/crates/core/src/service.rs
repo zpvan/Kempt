@@ -6,7 +6,7 @@ use crate::{
 use std::sync::Arc;
 
 pub struct AppService<R> {
-    repository: Arc<R>,
+    pub(crate) repository: Arc<R>,
 }
 
 impl<R: TaskRepository> AppService<R> {
@@ -151,7 +151,7 @@ fn checklist_progress(items: &[crate::model::ChecklistItem]) -> u8 {
     ((items.iter().filter(|item| item.completed).count() * 100) as f64 / items.len() as f64).round() as u8
 }
 
-fn validate_task(task: &Task) -> Result<(), AppError> {
+pub(crate) fn validate_task(task: &Task) -> Result<(), AppError> {
     task.validate()?;
     if task.parent_id.as_ref().is_some_and(|id| id.len() > 191) {
         return Err(AppError::Validation("Invalid parent task ID".into()));
@@ -169,7 +169,7 @@ fn validate_task(task: &Task) -> Result<(), AppError> {
     Ok(())
 }
 
-fn validate_log(log: &WorkLog) -> Result<(), AppError> {
+pub(crate) fn validate_log(log: &WorkLog) -> Result<(), AppError> {
     let valid_date = log.date.len() == 10
         && log.date.as_bytes()[4] == b'-'
         && log.date.as_bytes()[7] == b'-'

@@ -1,3 +1,4 @@
+mod backup;
 mod repository;
 
 pub use repository::SqliteRepository;
@@ -5,13 +6,16 @@ pub use repository::SqliteRepository;
 use kempt_core::error::AppError;
 use rusqlite::Connection;
 use std::{
-    path::Path,
+    fs,
+    path::{Path, PathBuf},
     sync::{Mutex, MutexGuard},
     time::Duration,
 };
 
 pub struct Database {
     conn: Mutex<Connection>,
+    backup_dir: PathBuf,
+    existed_before_open: bool,
 }
 
 impl Database {
@@ -19,6 +23,11 @@ impl Database {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| AppError::Storage(e.to_string()))?;
         }
+        let existed_before_open = path.exists();
+        let backup_dir = path
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join("backups");
         let conn = Connection::open(path).map_err(|e| AppError::Storage(e.to_string()))?;
         conn.busy_timeout(Duration::from_secs(5))
             .map_err(|e| AppError::Storage(e.to_string()))?;
@@ -28,6 +37,8 @@ impl Database {
             .map_err(|e| AppError::Storage(e.to_string()))?;
         Ok(Self {
             conn: Mutex::new(conn),
+            backup_dir,
+            existed_before_open,
         })
     }
 
@@ -37,6 +48,11 @@ impl Database {
             .query_row("PRAGMA user_version", [], |r| r.get(0))
             .map_err(|e| AppError::Storage(e.to_string()))?;
         if version == 0 {
+            if self.existed_before_open {
+                drop(conn);
+                self.backup_to()?;
+                conn = self.conn();
+            }
             let tx = conn
                 .transaction()
                 .map_err(|e| AppError::Storage(e.to_string()))?;
@@ -55,6 +71,30 @@ impl Database {
 
     pub fn conn(&self) -> MutexGuard<'_, Connection> {
         self.conn.lock().expect("database mutex poisoned")
+    }
+
+    pub fn backup_to(&self) -> Result<PathBuf, AppError> {
+        fs::create_dir_all(&self.backup_dir).map_err(|e| AppError::Storage(e.to_string()))?;
+        let file_name = format!(
+            "auto-backup-{}-{}.db",
+            chrono::Utc::now().format("%Y%m%dT%H%M%S%.3fZ"),
+            uuid::Uuid::new_v4()
+        );
+        let destination = self.backup_dir.join(file_name);
+        self.conn()
+            .execute("VACUUM INTO ?1", [&destination.to_string_lossy().to_string()])
+            .map_err(|e| AppError::Storage(e.to_string()))?;
+        let mut backups = fs::read_dir(&self.backup_dir)
+            .map_err(|e| AppError::Storage(e.to_string()))?
+            .filter_map(|entry| entry.ok().map(|entry| entry.path()))
+            .filter(|path| path.extension().is_some_and(|ext| ext == "db"))
+            .collect::<Vec<_>>();
+        backups.sort();
+        let remove_count = backups.len().saturating_sub(10);
+        for path in backups.into_iter().take(remove_count) {
+            fs::remove_file(path).map_err(|e| AppError::Storage(e.to_string()))?;
+        }
+        Ok(destination)
     }
 }
 

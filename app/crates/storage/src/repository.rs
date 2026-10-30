@@ -319,7 +319,7 @@ fn storage_error(error: rusqlite::Error) -> AppError {
     AppError::Storage(error.to_string())
 }
 
-fn status_str(status: Status) -> &'static str {
+pub(crate) fn status_str(status: Status) -> &'static str {
     match status {
         Status::Todo => "todo",
         Status::Doing => "doing",
@@ -327,7 +327,7 @@ fn status_str(status: Status) -> &'static str {
     }
 }
 
-fn priority_str(priority: Priority) -> &'static str {
+pub(crate) fn priority_str(priority: Priority) -> &'static str {
     match priority {
         Priority::Low => "low",
         Priority::Medium => "medium",
