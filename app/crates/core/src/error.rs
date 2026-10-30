@@ -19,7 +19,11 @@ pub enum AppError {
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
+#[ts(
+    export,
+    export_to = "../../../contracts/generated/",
+    rename_all = "camelCase"
+)]
 pub struct ErrorBody {
     pub code: String,
     pub message: String,

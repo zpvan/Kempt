@@ -43,7 +43,12 @@ impl<R: TaskRepository> AppService<R> {
                 "Workspace name must contain 1 to 40 characters".into(),
             ));
         }
-        if self.repository.list_users()?.iter().any(|user| user.name == name) {
+        if self
+            .repository
+            .list_users()?
+            .iter()
+            .any(|user| user.name == name)
+        {
             return Err(AppError::Conflict("Workspace name already exists".into()));
         }
         self.repository.create_user(name)
@@ -77,7 +82,12 @@ impl<R: TaskRepository> AppService<R> {
         self.repository.upsert_task(user_id, &normalize_task(task))
     }
 
-    pub fn set_deleted(&self, user_id: &str, id: &str, deleted: bool) -> Result<Vec<Task>, AppError> {
+    pub fn set_deleted(
+        &self,
+        user_id: &str,
+        id: &str,
+        deleted: bool,
+    ) -> Result<Vec<Task>, AppError> {
         self.repository.set_deleted(user_id, id, deleted)
     }
 
@@ -94,13 +104,23 @@ impl<R: TaskRepository> AppService<R> {
         self.repository.reorder(user_id, ordered_ids)
     }
 
-    pub fn set_status(&self, user_id: &str, id: &str, status: Status) -> Result<Vec<Task>, AppError> {
+    pub fn set_status(
+        &self,
+        user_id: &str,
+        id: &str,
+        status: Status,
+    ) -> Result<Vec<Task>, AppError> {
         let task = self.repository.get_task(user_id, id)?;
         let task = task_with_status(task, status);
         self.repository.upsert_task(user_id, &task)
     }
 
-    pub fn add_log(&self, user_id: &str, task_id: &str, log: &WorkLog) -> Result<Vec<Task>, AppError> {
+    pub fn add_log(
+        &self,
+        user_id: &str,
+        task_id: &str,
+        log: &WorkLog,
+    ) -> Result<Vec<Task>, AppError> {
         validate_log(log)?;
         let task = self.repository.get_task(user_id, task_id)?;
         let (task, log) = task_with_log(task, log);
@@ -140,7 +160,11 @@ pub fn task_with_log(mut task: Task, log: &WorkLog) -> (Task, WorkLog) {
         log.status = Status::Done;
     }
     let progress = if task.checklist.is_empty() {
-        if log.status == Status::Done { 100 } else { log.progress }
+        if log.status == Status::Done {
+            100
+        } else {
+            log.progress
+        }
     } else {
         checklist_progress(&task.checklist)
     };
@@ -163,7 +187,11 @@ pub fn normalize_task(mut task: Task) -> Task {
         task.status = Status::Done;
     }
     task.progress = if task.checklist.is_empty() {
-        if task.status == Status::Done { 100 } else { task.progress }
+        if task.status == Status::Done {
+            100
+        } else {
+            task.progress
+        }
     } else {
         checklist_progress(&task.checklist)
     };
@@ -174,7 +202,8 @@ fn checklist_progress(items: &[crate::model::ChecklistItem]) -> u8 {
     if items.iter().all(|item| item.completed) {
         return 100;
     }
-    ((items.iter().filter(|item| item.completed).count() * 100) as f64 / items.len() as f64).round() as u8
+    ((items.iter().filter(|item| item.completed).count() * 100) as f64 / items.len() as f64).round()
+        as u8
 }
 
 pub(crate) fn validate_task(task: &Task) -> Result<(), AppError> {
@@ -199,7 +228,11 @@ pub(crate) fn validate_log(log: &WorkLog) -> Result<(), AppError> {
     let valid_date = log.date.len() == 10
         && log.date.as_bytes()[4] == b'-'
         && log.date.as_bytes()[7] == b'-'
-        && log.date.chars().enumerate().all(|(i, c)| matches!(i, 4 | 7) || c.is_ascii_digit());
+        && log
+            .date
+            .chars()
+            .enumerate()
+            .all(|(i, c)| matches!(i, 4 | 7) || c.is_ascii_digit());
     if log.id.is_empty()
         || log.id.len() > 191
         || log.content.is_empty()

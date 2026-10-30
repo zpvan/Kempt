@@ -10,7 +10,11 @@ use ts_rs::TS;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
+#[ts(
+    export,
+    export_to = "../../../contracts/generated/",
+    rename_all = "camelCase"
+)]
 pub struct BackupUser {
     pub id: String,
     #[ts(optional)]
@@ -23,7 +27,11 @@ pub struct BackupUser {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
+#[ts(
+    export,
+    export_to = "../../../contracts/generated/",
+    rename_all = "camelCase"
+)]
 pub struct BackupTask {
     #[serde(flatten)]
     #[ts(flatten)]
@@ -33,7 +41,11 @@ pub struct BackupTask {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
+#[ts(
+    export,
+    export_to = "../../../contracts/generated/",
+    rename_all = "camelCase"
+)]
 pub struct BackupPreferences {
     #[ts(optional)]
     pub theme: Option<String>,
@@ -45,7 +57,11 @@ pub struct BackupPreferences {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
+#[ts(
+    export,
+    export_to = "../../../contracts/generated/",
+    rename_all = "camelCase"
+)]
 pub struct FullBackup {
     pub app: String,
     pub format: String,
@@ -59,7 +75,11 @@ pub struct FullBackup {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
+#[ts(
+    export,
+    export_to = "../../../contracts/generated/",
+    rename_all = "camelCase"
+)]
 pub struct RestoreSummary {
     pub users: Vec<AppUser>,
     pub tasks: usize,

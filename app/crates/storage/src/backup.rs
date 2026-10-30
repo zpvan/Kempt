@@ -1,4 +1,7 @@
-use crate::{repository::{priority_str, status_str}, SqliteRepository};
+use crate::{
+    repository::{priority_str, status_str},
+    SqliteRepository,
+};
 use chrono::{DateTime, Utc};
 use kempt_core::{
     backup::{BackupRepository, BackupTask, BackupUser, FullBackup, RestoreSummary},
@@ -13,9 +16,11 @@ impl BackupRepository for SqliteRepository {
         let mut tasks = Vec::new();
         for user in &users {
             for deleted in [false, true] {
-                tasks.extend(self.list_tasks(&user.id, deleted)?.into_iter().map(|task| BackupTask {
-                    task,
-                    user_id: user.id.clone(),
+                tasks.extend(self.list_tasks(&user.id, deleted)?.into_iter().map(|task| {
+                    BackupTask {
+                        task,
+                        user_id: user.id.clone(),
+                    }
                 }));
             }
         }
@@ -25,13 +30,16 @@ impl BackupRepository for SqliteRepository {
             format: "kempt-full-backup".into(),
             version: 2,
             exported_at: Utc::now().to_rfc3339(),
-            users: users.into_iter().map(|user| BackupUser {
-                id: user.id,
-                owner_union_id: None,
-                name: user.name,
-                is_default: user.is_default,
-                created_at: Some(user.created_at),
-            }).collect(),
+            users: users
+                .into_iter()
+                .map(|user| BackupUser {
+                    id: user.id,
+                    owner_union_id: None,
+                    name: user.name,
+                    is_default: user.is_default,
+                    created_at: Some(user.created_at),
+                })
+                .collect(),
             tasks,
             preferences: None,
         })
@@ -40,17 +48,35 @@ impl BackupRepository for SqliteRepository {
     fn replace_snapshot(&self, backup: &FullBackup) -> Result<RestoreSummary, AppError> {
         self.database().backup_to()?;
         let logs = backup.tasks.iter().map(|task| task.task.logs.len()).sum();
-        let checklist = backup.tasks.iter().map(|task| task.task.checklist.len()).sum();
-        let deleted_tasks = backup.tasks.iter().filter(|task| task.task.deleted_at.is_some()).count();
+        let checklist = backup
+            .tasks
+            .iter()
+            .map(|task| task.task.checklist.len())
+            .sum();
+        let deleted_tasks = backup
+            .tasks
+            .iter()
+            .filter(|task| task.task.deleted_at.is_some())
+            .count();
         {
             let mut conn = self.database().conn();
-            let tx = conn.transaction().map_err(|e| AppError::Storage(e.to_string()))?;
-            tx.execute("DELETE FROM work_tasks", []).map_err(|e| AppError::Storage(e.to_string()))?;
-            tx.execute("DELETE FROM app_users", []).map_err(|e| AppError::Storage(e.to_string()))?;
+            let tx = conn
+                .transaction()
+                .map_err(|e| AppError::Storage(e.to_string()))?;
+            tx.execute("DELETE FROM work_tasks", [])
+                .map_err(|e| AppError::Storage(e.to_string()))?;
+            tx.execute("DELETE FROM app_users", [])
+                .map_err(|e| AppError::Storage(e.to_string()))?;
             for user in &backup.users {
-                let created_at = user.created_at.as_deref().and_then(|value| {
-                    DateTime::parse_from_rfc3339(value).ok().map(|date| date.timestamp_millis())
-                }).unwrap_or_else(|| Utc::now().timestamp_millis());
+                let created_at = user
+                    .created_at
+                    .as_deref()
+                    .and_then(|value| {
+                        DateTime::parse_from_rfc3339(value)
+                            .ok()
+                            .map(|date| date.timestamp_millis())
+                    })
+                    .unwrap_or_else(|| Utc::now().timestamp_millis());
                 tx.execute(
                     "INSERT INTO app_users (id, name, is_default, created_at) VALUES (?1, ?2, ?3, ?4)",
                     params![user.id, user.name, user.is_default, created_at],
@@ -91,7 +117,10 @@ impl BackupRepository for SqliteRepository {
     }
 
     fn has_tasks(&self) -> Result<bool, AppError> {
-        let count: i64 = self.database().conn().query_row("SELECT COUNT(*) FROM work_tasks", [], |row| row.get(0))
+        let count: i64 = self
+            .database()
+            .conn()
+            .query_row("SELECT COUNT(*) FROM work_tasks", [], |row| row.get(0))
             .map_err(|e| AppError::Storage(e.to_string()))?;
         Ok(count > 0)
     }

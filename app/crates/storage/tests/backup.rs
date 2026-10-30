@@ -8,21 +8,45 @@ fn backup_round_trip_preserves_tasks_logs_checklist_and_trash() {
     let mut task = sample_task("active");
     task.checklist.push(sample_checklist("item"));
     fixture.service.upsert_task("shella", task).unwrap();
-    fixture.service.add_log("shella", "active", &sample_log("log")).unwrap();
-    fixture.service.upsert_task("shella", sample_task("deleted")).unwrap();
-    fixture.service.set_deleted("shella", "deleted", true).unwrap();
+    fixture
+        .service
+        .add_log("shella", "active", &sample_log("log"))
+        .unwrap();
+    fixture
+        .service
+        .upsert_task("shella", sample_task("deleted"))
+        .unwrap();
+    fixture
+        .service
+        .set_deleted("shella", "deleted", true)
+        .unwrap();
     let backup = fixture.service.export_backup().unwrap();
 
     fixture.service.purge_task("shella", "deleted").unwrap();
-    fixture.service.set_deleted("shella", "active", true).unwrap();
+    fixture
+        .service
+        .set_deleted("shella", "active", true)
+        .unwrap();
     let summary = fixture.service.import_backup(backup).unwrap();
     assert_eq!(summary.tasks, 2);
     assert_eq!(summary.logs, 1);
     assert_eq!(summary.checklist, 1);
     assert_eq!(summary.deleted_tasks, 1);
-    assert_eq!(fixture.service.list_tasks("shella").unwrap()[0].logs.len(), 1);
+    assert_eq!(
+        fixture.service.list_tasks("shella").unwrap()[0].logs.len(),
+        1
+    );
     assert_eq!(fixture.service.trash("shella").unwrap()[0].id, "deleted");
-    assert!(fixture._dir.path().join("backups").read_dir().unwrap().count() >= 1);
+    assert!(
+        fixture
+            ._dir
+            .path()
+            .join("backups")
+            .read_dir()
+            .unwrap()
+            .count()
+            >= 1
+    );
 }
 
 #[test]
@@ -40,7 +64,10 @@ fn failed_restore_preserves_existing_tasks() {
     let mut backup = fixture.service.export_backup().unwrap();
     backup.tasks[0].user_id = "unknown".into();
     assert!(fixture.service.import_backup(backup).is_err());
-    assert_eq!(fixture.service.list_tasks("shella").unwrap()[0].id, "existing");
+    assert_eq!(
+        fixture.service.list_tasks("shella").unwrap()[0].id,
+        "existing"
+    );
 }
 
 #[test]

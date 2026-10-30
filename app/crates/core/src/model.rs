@@ -22,7 +22,11 @@ pub enum Priority {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
+#[ts(
+    export,
+    export_to = "../../../contracts/generated/",
+    rename_all = "camelCase"
+)]
 pub struct WorkLog {
     pub id: String,
     pub date: String,
@@ -35,7 +39,11 @@ pub struct WorkLog {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
+#[ts(
+    export,
+    export_to = "../../../contracts/generated/",
+    rename_all = "camelCase"
+)]
 pub struct ChecklistItem {
     pub id: String,
     pub content: String,
@@ -48,7 +56,11 @@ pub struct ChecklistItem {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
+#[ts(
+    export,
+    export_to = "../../../contracts/generated/",
+    rename_all = "camelCase"
+)]
 pub struct Task {
     pub id: String,
     pub title: String,
@@ -117,9 +129,7 @@ impl Task {
             || !valid_date(&self.start_date)
             || !valid_date(&self.due_date)
         {
-            return Err(AppError::Validation(
-                "Invalid project or task dates".into(),
-            ));
+            return Err(AppError::Validation("Invalid project or task dates".into()));
         }
         if self.progress > 100 || self.position < 0 || self.checklist.len() > 200 {
             return Err(AppError::Validation(

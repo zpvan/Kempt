@@ -88,7 +88,11 @@ struct WorkspaceRequest {
     workspace_id: String,
 }
 
-pub async fn dispatch<R>(service: &AppService<R>, method: &str, payload: Value) -> Result<Value, AppError>
+pub async fn dispatch<R>(
+    service: &AppService<R>,
+    method: &str,
+    payload: Value,
+) -> Result<Value, AppError>
 where
     R: ChatRepository + BackupRepository,
 {
@@ -142,22 +146,39 @@ where
         }
         "backup.export" => output(service.export_backup()?),
         "backup.restore" => output(service.import_backup(parse::<BackupRequest>(payload)?.backup)?),
-        "legacy.importLocal" => output(service.import_local(parse::<BackupRequest>(payload)?.backup)?),
+        "legacy.importLocal" => {
+            output(service.import_local(parse::<BackupRequest>(payload)?.backup)?)
+        }
         "assistant.models.list" => output(service.list_models()?),
         "assistant.models.save" => {
             let input = parse::<SaveModelRequest>(payload)?;
             output(service.save_model(input.model, input.api_key).await?)
         }
         "assistant.models.delete" => output(service.delete_model(&parse::<Id>(payload)?.id)?),
-        "assistant.models.setDefault" => output(service.set_default_model(&parse::<Id>(payload)?.id)?),
-        "assistant.models.available" => output(service.available_models(parse::<AvailableModelsRequest>(payload)?).await?),
-        "assistant.chat.history" => output(service.list_messages(&parse::<WorkspaceRequest>(payload)?.workspace_id)?),
-        "assistant.chat.actions" => output(service.list_actions(&parse::<WorkspaceRequest>(payload)?.workspace_id)?),
+        "assistant.models.setDefault" => {
+            output(service.set_default_model(&parse::<Id>(payload)?.id)?)
+        }
+        "assistant.models.available" => output(
+            service
+                .available_models(parse::<AvailableModelsRequest>(payload)?)
+                .await?,
+        ),
+        "assistant.chat.history" => {
+            output(service.list_messages(&parse::<WorkspaceRequest>(payload)?.workspace_id)?)
+        }
+        "assistant.chat.actions" => {
+            output(service.list_actions(&parse::<WorkspaceRequest>(payload)?.workspace_id)?)
+        }
         "assistant.chat.chat" => output(service.chat(parse::<ChatRequest>(payload)?).await?),
-        "assistant.chat.clear" => output(service.clear_messages(&parse::<WorkspaceRequest>(payload)?.workspace_id)?),
+        "assistant.chat.clear" => {
+            output(service.clear_messages(&parse::<WorkspaceRequest>(payload)?.workspace_id)?)
+        }
         "assistant.chat.executeAction" => {
             let tasks = service.execute_action(&parse::<Id>(payload)?.id)?;
-            output(ActionResult { success: true, tasks })
+            output(ActionResult {
+                success: true,
+                tasks,
+            })
         }
         "assistant.chat.rejectAction" => output(service.reject_action(&parse::<Id>(payload)?.id)?),
         _ => Err(AppError::NotFound(format!("Unknown RPC method: {method}"))),

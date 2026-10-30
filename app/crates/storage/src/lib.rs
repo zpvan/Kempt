@@ -86,7 +86,10 @@ impl Database {
         );
         let destination = self.backup_dir.join(file_name);
         self.conn()
-            .execute("VACUUM INTO ?1", [&destination.to_string_lossy().to_string()])
+            .execute(
+                "VACUUM INTO ?1",
+                [&destination.to_string_lossy().to_string()],
+            )
             .map_err(|e| AppError::Storage(e.to_string()))?;
         let mut backups = fs::read_dir(&self.backup_dir)
             .map_err(|e| AppError::Storage(e.to_string()))?
@@ -116,11 +119,44 @@ mod tests {
         drop(first);
         let second = Database::open(&path).unwrap();
         second.migrate().unwrap();
-        assert_eq!(second.conn().query_row("SELECT COUNT(*) FROM app_users", [], |r| r.get::<_, i64>(0)).unwrap(), 2);
-        assert_eq!(second.conn().query_row("PRAGMA foreign_keys", [], |r| r.get::<_, i64>(0)).unwrap(), 1);
-        assert_eq!(second.conn().query_row("PRAGMA journal_mode", [], |r| r.get::<_, String>(0)).unwrap(), "wal");
-        for table in ["app_users", "work_tasks", "task_work_logs", "task_checklist_items", "assistant_models", "assistant_messages", "assistant_actions"] {
-            let exists: i64 = second.conn().query_row("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1", [table], |r| r.get(0)).unwrap();
+        assert_eq!(
+            second
+                .conn()
+                .query_row("SELECT COUNT(*) FROM app_users", [], |r| r.get::<_, i64>(0))
+                .unwrap(),
+            2
+        );
+        assert_eq!(
+            second
+                .conn()
+                .query_row("PRAGMA foreign_keys", [], |r| r.get::<_, i64>(0))
+                .unwrap(),
+            1
+        );
+        assert_eq!(
+            second
+                .conn()
+                .query_row("PRAGMA journal_mode", [], |r| r.get::<_, String>(0))
+                .unwrap(),
+            "wal"
+        );
+        for table in [
+            "app_users",
+            "work_tasks",
+            "task_work_logs",
+            "task_checklist_items",
+            "assistant_models",
+            "assistant_messages",
+            "assistant_actions",
+        ] {
+            let exists: i64 = second
+                .conn()
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
+                    [table],
+                    |r| r.get(0),
+                )
+                .unwrap();
             assert_eq!(exists, 1, "missing table {table}");
         }
     }

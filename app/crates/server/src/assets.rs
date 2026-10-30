@@ -7,7 +7,11 @@ struct Assets;
 
 pub fn response(path: &str) -> axum::response::Response {
     let clean = path.trim_start_matches('/');
-    let asset = if clean.is_empty() { "index.html" } else { clean };
+    let asset = if clean.is_empty() {
+        "index.html"
+    } else {
+        clean
+    };
     if let Some(file) = Assets::get(asset) {
         return file_response(asset, file.data.into_owned());
     }
@@ -22,7 +26,10 @@ pub fn response(path: &str) -> axum::response::Response {
 
 fn file_response(path: &str, data: Vec<u8>) -> axum::response::Response {
     axum::response::Response::builder()
-        .header(axum::http::header::CONTENT_TYPE, mime_guess::from_path(path).first_or_octet_stream().as_ref())
+        .header(
+            axum::http::header::CONTENT_TYPE,
+            mime_guess::from_path(path).first_or_octet_stream().as_ref(),
+        )
         .body(axum::body::Body::from(data))
         .unwrap()
 }

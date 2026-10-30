@@ -12,7 +12,9 @@ impl AssistantRepository for SqliteRepository {
         let mut stmt = conn.prepare(
             "SELECT id, provider, name, base_url, model, secret_ref, is_default, created_at FROM assistant_models ORDER BY is_default DESC, created_at ASC",
         ).map_err(storage_error)?;
-        let rows = stmt.query_map([], row_to_model_record).map_err(storage_error)?;
+        let rows = stmt
+            .query_map([], row_to_model_record)
+            .map_err(storage_error)?;
         let mut models = Vec::new();
         for row in rows {
             models.push(row.map_err(storage_error)?.model);
@@ -29,7 +31,10 @@ impl AssistantRepository for SqliteRepository {
         ).optional().map_err(storage_error)?.ok_or_else(|| AppError::NotFound("Assistant model not found".into()))
     }
 
-    fn save_model_record(&self, record: &AssistantModelRecord) -> Result<Vec<AssistantModel>, AppError> {
+    fn save_model_record(
+        &self,
+        record: &AssistantModelRecord,
+    ) -> Result<Vec<AssistantModel>, AppError> {
         let model = &record.model;
         let created_at = DateTime::parse_from_rfc3339(&model.created_at)
             .map(|date| date.timestamp_millis())
@@ -49,8 +54,14 @@ impl AssistantRepository for SqliteRepository {
         {
             let mut conn = self.database().conn();
             let tx = conn.transaction().map_err(storage_error)?;
-            tx.execute("UPDATE assistant_models SET is_default = 0", []).map_err(storage_error)?;
-            let changed = tx.execute("UPDATE assistant_models SET is_default = 1 WHERE id = ?1", [id]).map_err(storage_error)?;
+            tx.execute("UPDATE assistant_models SET is_default = 0", [])
+                .map_err(storage_error)?;
+            let changed = tx
+                .execute(
+                    "UPDATE assistant_models SET is_default = 1 WHERE id = ?1",
+                    [id],
+                )
+                .map_err(storage_error)?;
             if changed == 0 {
                 return Err(AppError::NotFound("Assistant model not found".into()));
             }
@@ -63,10 +74,17 @@ impl AssistantRepository for SqliteRepository {
         {
             let mut conn = self.database().conn();
             let tx = conn.transaction().map_err(storage_error)?;
-            let was_default = tx.query_row(
-                "SELECT is_default FROM assistant_models WHERE id = ?1", [id], |row| row.get::<_, bool>(0),
-            ).optional().map_err(storage_error)?.ok_or_else(|| AppError::NotFound("Assistant model not found".into()))?;
-            tx.execute("DELETE FROM assistant_models WHERE id = ?1", [id]).map_err(storage_error)?;
+            let was_default = tx
+                .query_row(
+                    "SELECT is_default FROM assistant_models WHERE id = ?1",
+                    [id],
+                    |row| row.get::<_, bool>(0),
+                )
+                .optional()
+                .map_err(storage_error)?
+                .ok_or_else(|| AppError::NotFound("Assistant model not found".into()))?;
+            tx.execute("DELETE FROM assistant_models WHERE id = ?1", [id])
+                .map_err(storage_error)?;
             if was_default {
                 tx.execute(
                     "UPDATE assistant_models SET is_default = 1 WHERE id = (SELECT id FROM assistant_models ORDER BY created_at ASC LIMIT 1)",

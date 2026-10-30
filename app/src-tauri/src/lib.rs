@@ -1,5 +1,10 @@
 use directories::ProjectDirs;
-use kempt_core::{ai::ReqwestAiTransport, dispatch::dispatch, error::{AppError, ErrorBody}, service::AppService};
+use kempt_core::{
+    ai::ReqwestAiTransport,
+    dispatch::dispatch,
+    error::{AppError, ErrorBody},
+    service::AppService,
+};
 use kempt_storage::{Database, KeyringSecretStore, SqliteRepository};
 use std::{path::PathBuf, sync::Arc};
 
@@ -12,7 +17,9 @@ pub async fn rpc_inner(
     method: &str,
     payload: serde_json::Value,
 ) -> Result<serde_json::Value, ErrorBody> {
-    dispatch(service, method, payload).await.map_err(|error| error.body())
+    dispatch(service, method, payload)
+        .await
+        .map_err(|error| error.body())
 }
 
 #[tauri::command]
@@ -25,10 +32,15 @@ async fn rpc(
 }
 
 fn validate_backup_path(path: &std::path::Path) -> Result<(), AppError> {
-    if path.extension().is_some_and(|extension| extension == "json") {
+    if path
+        .extension()
+        .is_some_and(|extension| extension == "json")
+    {
         Ok(())
     } else {
-        Err(AppError::Validation("Backup files must use the .json extension".into()))
+        Err(AppError::Validation(
+            "Backup files must use the .json extension".into(),
+        ))
     }
 }
 
@@ -36,7 +48,8 @@ fn validate_backup_path(path: &std::path::Path) -> Result<(), AppError> {
 fn read_backup(path: String) -> Result<String, ErrorBody> {
     let path = std::path::Path::new(&path);
     validate_backup_path(path).map_err(|error| error.body())?;
-    let metadata = std::fs::metadata(path).map_err(|error| AppError::Storage(error.to_string()).body())?;
+    let metadata =
+        std::fs::metadata(path).map_err(|error| AppError::Storage(error.to_string()).body())?;
     if metadata.len() > 50 * 1024 * 1024 {
         return Err(AppError::Validation("Backup file exceeds 50 MiB".into()).body());
     }
@@ -62,20 +75,29 @@ fn data_dir() -> Result<PathBuf, AppError> {
 fn build_service() -> Result<AppService<SqliteRepository>, AppError> {
     let database = Database::open(&data_dir()?.join("kempt.db"))?;
     database.migrate()?;
+    let secrets: Arc<dyn kempt_core::secrets::SecretStore> =
+        if std::env::var("HEA_SESSION_SECRETS").as_deref() == Ok("1") {
+            Arc::new(kempt_core::secrets::MemorySecretStore::default())
+        } else {
+            Arc::new(KeyringSecretStore)
+        };
     Ok(AppService::with_assistant(
         SqliteRepository::new(database),
-        Arc::new(KeyringSecretStore),
+        secrets,
         Arc::new(ReqwestAiTransport::new()?),
     ))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let service = build_service().unwrap_or_else(|error| panic!("Failed to initialize application: {error}"));
+    let service =
+        build_service().unwrap_or_else(|error| panic!("Failed to initialize application: {error}"));
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
-        .manage(AppState { service: Arc::new(service) })
+        .manage(AppState {
+            service: Arc::new(service),
+        })
         .invoke_handler(tauri::generate_handler![rpc, read_backup, write_backup])
         .run(tauri::generate_context!())
         .expect("error while running Hea Workflow");
@@ -94,7 +116,9 @@ mod tests {
         database.migrate().unwrap();
         let service = AppService::new(SqliteRepository::new(database));
         let payload = serde_json::json!({"userId":"shella"});
-        let expected = dispatch(&service, "task.list", payload.clone()).await.unwrap();
+        let expected = dispatch(&service, "task.list", payload.clone())
+            .await
+            .unwrap();
         let actual = rpc_inner(&service, "task.list", payload).await.unwrap();
         assert_eq!(actual, expected);
     }

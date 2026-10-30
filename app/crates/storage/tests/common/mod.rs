@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub mod assistant;
 
 use kempt_core::model::{ChecklistItem, Status, Task, WorkLog};
@@ -23,7 +25,10 @@ impl Fixture {
     pub fn with_tasks(ids: &[&str]) -> Self {
         let fixture = Self::new();
         for id in ids {
-            fixture.service.upsert_task("shella", sample_task(id)).unwrap();
+            fixture
+                .service
+                .upsert_task("shella", sample_task(id))
+                .unwrap();
         }
         fixture
     }

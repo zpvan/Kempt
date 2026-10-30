@@ -7,7 +7,11 @@ use ts_rs::TS;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
+#[ts(
+    export,
+    export_to = "../../../contracts/generated/",
+    rename_all = "camelCase"
+)]
 pub struct AppUser {
     pub id: String,
     pub name: String,
@@ -17,7 +21,11 @@ pub struct AppUser {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../../../contracts/generated/", rename_all = "camelCase")]
+#[ts(
+    export,
+    export_to = "../../../contracts/generated/",
+    rename_all = "camelCase"
+)]
 pub struct CreateUserResult {
     pub user: AppUser,
     pub users: Vec<AppUser>,

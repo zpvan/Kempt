@@ -22,8 +22,14 @@ pub fn router(service: ServerService) -> Router {
     let state = Arc::new(service);
     Router::new()
         .route("/api/health", get(health))
-        .route("/api/rpc/{method}", post(rpc).layer(DefaultBodyLimit::max(50 * 1024 * 1024)))
-        .route("/api/log", post(client_log).layer(DefaultBodyLimit::max(64 * 1024)))
+        .route(
+            "/api/rpc/{method}",
+            post(rpc).layer(DefaultBodyLimit::max(50 * 1024 * 1024)),
+        )
+        .route(
+            "/api/log",
+            post(client_log).layer(DefaultBodyLimit::max(64 * 1024)),
+        )
         .fallback(fallback)
         .layer(middleware::from_fn(observability))
         .with_state(state)
@@ -54,7 +60,9 @@ struct ClientLog {
     msg: String,
 }
 
-async fn client_log(payload: Result<Json<Vec<ClientLog>>, axum::extract::rejection::JsonRejection>) -> Response {
+async fn client_log(
+    payload: Result<Json<Vec<ClientLog>>, axum::extract::rejection::JsonRejection>,
+) -> Response {
     match payload {
         Ok(Json(entries)) if entries.len() <= 50 => {
             for entry in entries {
@@ -66,7 +74,9 @@ async fn client_log(payload: Result<Json<Vec<ClientLog>>, axum::extract::rejecti
             }
             StatusCode::NO_CONTENT.into_response()
         }
-        Ok(_) => error_response(&AppError::Validation("At most 50 log entries are allowed".into())),
+        Ok(_) => error_response(&AppError::Validation(
+            "At most 50 log entries are allowed".into(),
+        )),
         Err(error) => error_response(&AppError::Validation(error.to_string())),
     }
 }

@@ -18,6 +18,8 @@ enum Command {
         port: u16,
         #[arg(long)]
         data_dir: Option<PathBuf>,
+        #[arg(long)]
+        session_secrets: bool,
     },
 }
 
@@ -25,7 +27,20 @@ enum Command {
 async fn main() {
     let cli = Cli::parse();
     let result = match cli.command {
-        Command::Serve { host, port, data_dir } => serve(ServeOptions { host, port, data_dir }).await,
+        Command::Serve {
+            host,
+            port,
+            data_dir,
+            session_secrets,
+        } => {
+            serve(ServeOptions {
+                host,
+                port,
+                data_dir,
+                session_secrets,
+            })
+            .await
+        }
     };
     if let Err(error) = result {
         eprintln!("{error}");

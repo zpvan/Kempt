@@ -1,4 +1,8 @@
-use crate::{assistant::row_to_model_record, repository::{priority_str, status_str}, SqliteRepository};
+use crate::{
+    assistant::row_to_model_record,
+    repository::{priority_str, status_str},
+    SqliteRepository,
+};
 use chrono::Utc;
 use kempt_core::{
     assistant::{AssistantModelRecord, AssistantRepository},
@@ -36,15 +40,29 @@ impl ChatRepository for SqliteRepository {
         let mut stmt = conn.prepare(
             "SELECT id, workspace_id, model_id, role, content, created_at FROM assistant_messages WHERE workspace_id = ?1 ORDER BY created_at DESC LIMIT 50",
         ).map_err(storage_error)?;
-        let mut messages = stmt.query_map([workspace_id], |row| Ok(AssistantMessage {
-            id: row.get(0)?, workspace_id: row.get(1)?, model_id: row.get(2)?, role: row.get(3)?,
-            content: row.get(4)?, created_at: row.get(5)?,
-        })).map_err(storage_error)?.collect::<Result<Vec<_>, _>>().map_err(storage_error)?;
+        let mut messages = stmt
+            .query_map([workspace_id], |row| {
+                Ok(AssistantMessage {
+                    id: row.get(0)?,
+                    workspace_id: row.get(1)?,
+                    model_id: row.get(2)?,
+                    role: row.get(3)?,
+                    content: row.get(4)?,
+                    created_at: row.get(5)?,
+                })
+            })
+            .map_err(storage_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(storage_error)?;
         messages.reverse();
         Ok(messages)
     }
 
-    fn save_assistant_response(&self, message: &AssistantMessage, actions: &[AssistantActionDraft]) -> Result<Vec<AssistantAction>, AppError> {
+    fn save_assistant_response(
+        &self,
+        message: &AssistantMessage,
+        actions: &[AssistantActionDraft],
+    ) -> Result<Vec<AssistantAction>, AppError> {
         let mut saved = Vec::new();
         {
             let mut conn = self.database().conn();
@@ -55,10 +73,15 @@ impl ChatRepository for SqliteRepository {
             ).map_err(storage_error)?;
             for draft in actions {
                 let action = AssistantAction {
-                    id: Uuid::new_v4().to_string(), message_id: Some(message.id.clone()),
-                    workspace_id: message.workspace_id.clone(), action: draft.action.clone(),
-                    payload: draft.payload.clone(), summary: draft.summary.clone(), status: "pending".into(),
-                    created_at: Utc::now().timestamp_millis(), decided_at: None,
+                    id: Uuid::new_v4().to_string(),
+                    message_id: Some(message.id.clone()),
+                    workspace_id: message.workspace_id.clone(),
+                    action: draft.action.clone(),
+                    payload: draft.payload.clone(),
+                    summary: draft.summary.clone(),
+                    status: "pending".into(),
+                    created_at: Utc::now().timestamp_millis(),
+                    decided_at: None,
                 };
                 tx.execute(
                     "INSERT INTO assistant_actions (id, message_id, workspace_id, action, payload, summary, status, created_at, decided_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'pending', ?7, NULL)",
@@ -76,8 +99,11 @@ impl ChatRepository for SqliteRepository {
         let mut stmt = conn.prepare(
             "SELECT id, message_id, workspace_id, action, payload, summary, status, created_at, decided_at FROM assistant_actions WHERE workspace_id = ?1 ORDER BY created_at DESC LIMIT 50",
         ).map_err(storage_error)?;
-        let actions = stmt.query_map([workspace_id], row_to_action).map_err(storage_error)?
-            .collect::<Result<Vec<_>, _>>().map_err(storage_error)?;
+        let actions = stmt
+            .query_map([workspace_id], row_to_action)
+            .map_err(storage_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(storage_error)?;
         Ok(actions)
     }
 
@@ -95,20 +121,35 @@ impl ChatRepository for SqliteRepository {
             params![id, Utc::now().timestamp_millis()],
         ).map_err(storage_error)?;
         if changed == 0 {
-            return Err(AppError::Conflict("Assistant action was already decided".into()));
+            return Err(AppError::Conflict(
+                "Assistant action was already decided".into(),
+            ));
         }
         Ok(())
     }
 
-    fn execute_pending_action(&self, id: &str, effect: ActionEffect) -> Result<Vec<Task>, AppError> {
+    fn execute_pending_action(
+        &self,
+        id: &str,
+        effect: ActionEffect,
+    ) -> Result<Vec<Task>, AppError> {
         let workspace_id = effect_workspace(&effect).to_string();
         {
             let mut conn = self.database().conn();
             let tx = conn.transaction().map_err(storage_error)?;
-            let status: String = tx.query_row("SELECT status FROM assistant_actions WHERE id = ?1", [id], |row| row.get(0))
-                .optional().map_err(storage_error)?.ok_or_else(|| AppError::NotFound("Assistant action not found".into()))?;
+            let status: String = tx
+                .query_row(
+                    "SELECT status FROM assistant_actions WHERE id = ?1",
+                    [id],
+                    |row| row.get(0),
+                )
+                .optional()
+                .map_err(storage_error)?
+                .ok_or_else(|| AppError::NotFound("Assistant action not found".into()))?;
             if status != "pending" {
-                return Err(AppError::Conflict("Assistant action was already decided".into()));
+                return Err(AppError::Conflict(
+                    "Assistant action was already decided".into(),
+                ));
             }
             apply_effect(&tx, effect)?;
             tx.execute(
@@ -121,7 +162,13 @@ impl ChatRepository for SqliteRepository {
     }
 
     fn clear_messages(&self, workspace_id: &str) -> Result<(), AppError> {
-        self.database().conn().execute("DELETE FROM assistant_messages WHERE workspace_id = ?1", [workspace_id]).map_err(storage_error)?;
+        self.database()
+            .conn()
+            .execute(
+                "DELETE FROM assistant_messages WHERE workspace_id = ?1",
+                [workspace_id],
+            )
+            .map_err(storage_error)?;
         Ok(())
     }
 }
@@ -129,8 +176,16 @@ impl ChatRepository for SqliteRepository {
 fn apply_effect(tx: &Transaction<'_>, effect: ActionEffect) -> Result<(), AppError> {
     match effect {
         ActionEffect::UpsertTask { workspace_id, task } => upsert_effect(tx, &workspace_id, &task),
-        ActionEffect::AddLog { workspace_id, task, log } => add_log_effect(tx, &workspace_id, &task, &log),
-        ActionEffect::SetDeleted { workspace_id, task_id, deleted } => {
+        ActionEffect::AddLog {
+            workspace_id,
+            task,
+            log,
+        } => add_log_effect(tx, &workspace_id, &task, &log),
+        ActionEffect::SetDeleted {
+            workspace_id,
+            task_id,
+            deleted,
+        } => {
             let deleted_at = deleted.then(|| Utc::now().to_rfc3339());
             tx.execute(
                 "UPDATE work_tasks SET deleted_at = ?3, updated_at = ?4 WHERE user_id = ?1 AND (id = ?2 OR parent_id = ?2)",
@@ -138,7 +193,10 @@ fn apply_effect(tx: &Transaction<'_>, effect: ActionEffect) -> Result<(), AppErr
             ).map_err(storage_error)?;
             Ok(())
         }
-        ActionEffect::Reorder { workspace_id, ordered_ids } => {
+        ActionEffect::Reorder {
+            workspace_id,
+            ordered_ids,
+        } => {
             for (index, task_id) in ordered_ids.iter().enumerate() {
                 tx.execute(
                     "UPDATE work_tasks SET position = ?3, updated_at = ?4 WHERE user_id = ?1 AND id = ?2",
@@ -151,11 +209,21 @@ fn apply_effect(tx: &Transaction<'_>, effect: ActionEffect) -> Result<(), AppErr
 }
 
 fn upsert_effect(tx: &Transaction<'_>, workspace_id: &str, task: &Task) -> Result<(), AppError> {
-    let existing = tx.query_row("SELECT user_id, created_at FROM work_tasks WHERE id = ?1", [&task.id], |row| {
-        Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-    }).optional().map_err(storage_error)?;
-    if existing.as_ref().is_some_and(|(owner, _)| owner != workspace_id) {
-        return Err(AppError::Conflict("Task ID belongs to another workspace".into()));
+    let existing = tx
+        .query_row(
+            "SELECT user_id, created_at FROM work_tasks WHERE id = ?1",
+            [&task.id],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
+        )
+        .optional()
+        .map_err(storage_error)?;
+    if existing
+        .as_ref()
+        .is_some_and(|(owner, _)| owner != workspace_id)
+    {
+        return Err(AppError::Conflict(
+            "Task ID belongs to another workspace".into(),
+        ));
     }
     let created_at = existing.map_or(task.created_at, |(_, created_at)| created_at);
     tx.execute(
@@ -168,7 +236,11 @@ fn upsert_effect(tx: &Transaction<'_>, workspace_id: &str, task: &Task) -> Resul
         params![task.id, workspace_id, task.title, task.description, task.project, status_str(task.status), priority_str(task.priority),
             task.start_date, task.due_date, task.progress, task.position, task.parent_id, task.source_url, created_at, Utc::now().timestamp_millis()],
     ).map_err(storage_error)?;
-    tx.execute("DELETE FROM task_checklist_items WHERE task_id = ?1", [&task.id]).map_err(storage_error)?;
+    tx.execute(
+        "DELETE FROM task_checklist_items WHERE task_id = ?1",
+        [&task.id],
+    )
+    .map_err(storage_error)?;
     for item in &task.checklist {
         tx.execute(
             "INSERT INTO task_checklist_items (id, task_id, content, completed, position, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
@@ -178,7 +250,12 @@ fn upsert_effect(tx: &Transaction<'_>, workspace_id: &str, task: &Task) -> Resul
     Ok(())
 }
 
-fn add_log_effect(tx: &Transaction<'_>, workspace_id: &str, task: &Task, log: &WorkLog) -> Result<(), AppError> {
+fn add_log_effect(
+    tx: &Transaction<'_>,
+    workspace_id: &str,
+    task: &Task,
+    log: &WorkLog,
+) -> Result<(), AppError> {
     tx.execute(
         "INSERT INTO task_work_logs (id, task_id, date, content, progress, status, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![log.id, task.id, log.date, log.content, log.progress, status_str(log.status), log.created_at],
@@ -188,17 +265,29 @@ fn add_log_effect(tx: &Transaction<'_>, workspace_id: &str, task: &Task, log: &W
         params![workspace_id, task.id, status_str(task.status), task.progress, Utc::now().timestamp_millis()],
     ).map_err(storage_error)?;
     for item in &task.checklist {
-        tx.execute("UPDATE task_checklist_items SET completed = ?2 WHERE id = ?1", params![item.id, item.completed]).map_err(storage_error)?;
+        tx.execute(
+            "UPDATE task_checklist_items SET completed = ?2 WHERE id = ?1",
+            params![item.id, item.completed],
+        )
+        .map_err(storage_error)?;
     }
     Ok(())
 }
 
 fn row_to_action(row: &Row<'_>) -> rusqlite::Result<AssistantAction> {
     let payload: String = row.get(4)?;
-    let payload: Value = serde_json::from_str(&payload).map_err(|_| rusqlite::Error::InvalidQuery)?;
+    let payload: Value =
+        serde_json::from_str(&payload).map_err(|_| rusqlite::Error::InvalidQuery)?;
     Ok(AssistantAction {
-        id: row.get(0)?, message_id: row.get(1)?, workspace_id: row.get(2)?, action: row.get(3)?,
-        payload, summary: row.get(5)?, status: row.get(6)?, created_at: row.get(7)?, decided_at: row.get(8)?,
+        id: row.get(0)?,
+        message_id: row.get(1)?,
+        workspace_id: row.get(2)?,
+        action: row.get(3)?,
+        payload,
+        summary: row.get(5)?,
+        status: row.get(6)?,
+        created_at: row.get(7)?,
+        decided_at: row.get(8)?,
     })
 }
 

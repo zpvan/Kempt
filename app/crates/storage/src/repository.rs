@@ -95,7 +95,11 @@ impl TaskRepository for SqliteRepository {
             let mut conn = self.database.conn();
             let tx = conn.transaction().map_err(storage_error)?;
             let workspace_exists: i64 = tx
-                .query_row("SELECT COUNT(*) FROM app_users WHERE id = ?1", [user_id], |row| row.get(0))
+                .query_row(
+                    "SELECT COUNT(*) FROM app_users WHERE id = ?1",
+                    [user_id],
+                    |row| row.get(0),
+                )
                 .map_err(storage_error)?;
             if workspace_exists == 0 {
                 return Err(AppError::NotFound("Workspace not found".into()));
@@ -130,8 +134,11 @@ impl TaskRepository for SqliteRepository {
                 ],
             )
             .map_err(storage_error)?;
-            tx.execute("DELETE FROM task_checklist_items WHERE task_id = ?1", [&task.id])
-                .map_err(storage_error)?;
+            tx.execute(
+                "DELETE FROM task_checklist_items WHERE task_id = ?1",
+                [&task.id],
+            )
+            .map_err(storage_error)?;
             for item in &task.checklist {
                 tx.execute(
                     "INSERT INTO task_checklist_items (id, task_id, content, completed, position, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
@@ -159,7 +166,10 @@ impl TaskRepository for SqliteRepository {
     fn purge_task(&self, user_id: &str, id: &str) -> Result<Vec<Task>, AppError> {
         self.database
             .conn()
-            .execute("DELETE FROM work_tasks WHERE user_id = ?1 AND id = ?2", params![user_id, id])
+            .execute(
+                "DELETE FROM work_tasks WHERE user_id = ?1 AND id = ?2",
+                params![user_id, id],
+            )
             .map_err(storage_error)?;
         self.list_tasks(user_id, true)
     }
@@ -207,17 +217,34 @@ impl TaskRepository for SqliteRepository {
     }
 
     fn update_log(&self, user_id: &str, log: &WorkLog) -> Result<Vec<Task>, AppError> {
-        let changed = self.database.conn().execute(
-            "UPDATE task_work_logs SET date = ?3, content = ?4, progress = ?5, status = ?6
+        let changed = self
+            .database
+            .conn()
+            .execute(
+                "UPDATE task_work_logs SET date = ?3, content = ?4, progress = ?5, status = ?6
              WHERE id = ?1 AND task_id IN (SELECT id FROM work_tasks WHERE user_id = ?2)",
-            params![log.id, user_id, log.date, log.content, log.progress, status_str(log.status)],
-        ).map_err(storage_error)?;
+                params![
+                    log.id,
+                    user_id,
+                    log.date,
+                    log.content,
+                    log.progress,
+                    status_str(log.status)
+                ],
+            )
+            .map_err(storage_error)?;
         if changed == 0 {
             return Err(AppError::NotFound("Work log not found".into()));
         }
-        let task_id: String = self.database.conn().query_row(
-            "SELECT task_id FROM task_work_logs WHERE id = ?1", [&log.id], |row| row.get(0),
-        ).map_err(storage_error)?;
+        let task_id: String = self
+            .database
+            .conn()
+            .query_row(
+                "SELECT task_id FROM task_work_logs WHERE id = ?1",
+                [&log.id],
+                |row| row.get(0),
+            )
+            .map_err(storage_error)?;
         let _ = task_id;
         self.list_tasks(user_id, false)
     }
@@ -250,36 +277,57 @@ fn query_tasks(conn: &Connection, user_id: &str, deleted: bool) -> Result<Vec<Ta
     }
 
     let mut logs: HashMap<String, Vec<WorkLog>> = HashMap::new();
-    let mut stmt = conn.prepare(
-        "SELECT l.id, l.date, l.content, l.progress, l.status, l.created_at, l.task_id
+    let mut stmt = conn
+        .prepare(
+            "SELECT l.id, l.date, l.content, l.progress, l.status, l.created_at, l.task_id
          FROM task_work_logs l JOIN work_tasks t ON t.id = l.task_id
          WHERE t.user_id = ?1 ORDER BY l.created_at DESC",
-    ).map_err(storage_error)?;
-    let rows = stmt.query_map([user_id], |row| {
-        let task_id: String = row.get(6)?;
-        let status: String = row.get(4)?;
-        Ok((task_id, WorkLog {
-            id: row.get(0)?, date: row.get(1)?, content: row.get(2)?, progress: row.get(3)?,
-            status: parse_status(&status).map_err(|_| rusqlite::Error::InvalidQuery)?, created_at: row.get(5)?,
-        }))
-    }).map_err(storage_error)?;
+        )
+        .map_err(storage_error)?;
+    let rows = stmt
+        .query_map([user_id], |row| {
+            let task_id: String = row.get(6)?;
+            let status: String = row.get(4)?;
+            Ok((
+                task_id,
+                WorkLog {
+                    id: row.get(0)?,
+                    date: row.get(1)?,
+                    content: row.get(2)?,
+                    progress: row.get(3)?,
+                    status: parse_status(&status).map_err(|_| rusqlite::Error::InvalidQuery)?,
+                    created_at: row.get(5)?,
+                },
+            ))
+        })
+        .map_err(storage_error)?;
     for row in rows {
         let (task_id, log) = row.map_err(storage_error)?;
         logs.entry(task_id).or_default().push(log);
     }
 
     let mut checklist: HashMap<String, Vec<ChecklistItem>> = HashMap::new();
-    let mut stmt = conn.prepare(
-        "SELECT c.id, c.content, c.completed, c.position, c.created_at, c.task_id
+    let mut stmt = conn
+        .prepare(
+            "SELECT c.id, c.content, c.completed, c.position, c.created_at, c.task_id
          FROM task_checklist_items c JOIN work_tasks t ON t.id = c.task_id
          WHERE t.user_id = ?1 ORDER BY c.position ASC, c.created_at ASC",
-    ).map_err(storage_error)?;
-    let rows = stmt.query_map([user_id], |row| {
-        Ok((row.get::<_, String>(5)?, ChecklistItem {
-            id: row.get(0)?, content: row.get(1)?, completed: row.get(2)?,
-            position: row.get(3)?, created_at: row.get(4)?,
-        }))
-    }).map_err(storage_error)?;
+        )
+        .map_err(storage_error)?;
+    let rows = stmt
+        .query_map([user_id], |row| {
+            Ok((
+                row.get::<_, String>(5)?,
+                ChecklistItem {
+                    id: row.get(0)?,
+                    content: row.get(1)?,
+                    completed: row.get(2)?,
+                    position: row.get(3)?,
+                    created_at: row.get(4)?,
+                },
+            ))
+        })
+        .map_err(storage_error)?;
     for row in rows {
         let (task_id, item) = row.map_err(storage_error)?;
         checklist.entry(task_id).or_default().push(item);
