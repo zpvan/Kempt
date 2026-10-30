@@ -7,6 +7,19 @@ use kempt_core::{
 use rusqlite::{params, OptionalExtension, Row};
 
 impl AssistantRepository for SqliteRepository {
+    fn secret_references(&self) -> Result<Vec<String>, AppError> {
+        let conn = self.database().conn();
+        let mut stmt = conn
+            .prepare("SELECT secret_ref FROM assistant_models WHERE secret_ref != ''")
+            .map_err(storage_error)?;
+        let references = stmt
+            .query_map([], |row| row.get(0))
+            .map_err(storage_error)?
+            .collect::<Result<Vec<String>, _>>()
+            .map_err(storage_error)?;
+        Ok(references)
+    }
+
     fn list_models(&self) -> Result<Vec<AssistantModel>, AppError> {
         let conn = self.database().conn();
         let mut stmt = conn.prepare(

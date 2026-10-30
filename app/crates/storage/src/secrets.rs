@@ -1,28 +1,46 @@
-use kempt_core::{error::AppError, secrets::SecretStore};
+use kempt_core::{
+    branding::{BUNDLE_ID, LEGACY_BUNDLE_ID},
+    error::AppError,
+    secrets::SecretStore,
+};
 
-pub struct KeyringSecretStore;
+pub struct KeyringSecretStore {
+    service: String,
+}
+
+impl KeyringSecretStore {
+    pub fn new() -> Self {
+        Self {
+            service: BUNDLE_ID.into(),
+        }
+    }
+
+    pub fn legacy() -> Self {
+        Self {
+            service: LEGACY_BUNDLE_ID.into(),
+        }
+    }
+
+    fn entry(&self, reference: &str) -> Result<keyring::Entry, AppError> {
+        keyring::Entry::new(&self.service, reference).map_err(|e| AppError::SecretStore(e.to_string()))
+    }
+}
 
 impl SecretStore for KeyringSecretStore {
     fn get(&self, reference: &str) -> Result<String, AppError> {
-        let entry = keyring::Entry::new("com.kempt.workflow", reference)
-            .map_err(|e| AppError::SecretStore(e.to_string()))?;
-        entry
+        self.entry(reference)?
             .get_password()
             .map_err(|e| AppError::SecretStore(e.to_string()))
     }
 
     fn set(&self, reference: &str, value: &str) -> Result<(), AppError> {
-        let entry = keyring::Entry::new("com.kempt.workflow", reference)
-            .map_err(|e| AppError::SecretStore(e.to_string()))?;
-        entry
+        self.entry(reference)?
             .set_password(value)
             .map_err(|e| AppError::SecretStore(e.to_string()))
     }
 
     fn delete(&self, reference: &str) -> Result<(), AppError> {
-        let entry = keyring::Entry::new("com.kempt.workflow", reference)
-            .map_err(|e| AppError::SecretStore(e.to_string()))?;
-        entry
+        self.entry(reference)?
             .delete_credential()
             .map_err(|e| AppError::SecretStore(e.to_string()))
     }

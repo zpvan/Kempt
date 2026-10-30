@@ -2,6 +2,7 @@ use crate::Database;
 use kempt_core::{
     branding::{DATABASE_FILE, LEGACY_DATABASE_FILE},
     error::AppError,
+    secrets::SecretStore,
 };
 use rusqlite::{Connection, OpenFlags};
 use std::path::Path;
@@ -40,6 +41,23 @@ pub fn open_kempt_database(new_dir: &Path, legacy_dir: &Path) -> Result<Database
         std::fs::rename(&temporary, &new_path).map_err(io_error)?;
     }
     Database::open(&new_path)
+}
+
+pub fn migrate_credentials(
+    references: &[String],
+    legacy: &dyn SecretStore,
+    current: &dyn SecretStore,
+) -> Result<(), AppError> {
+    for reference in references {
+        let value = legacy.get(reference)?;
+        current.set(reference, &value)?;
+        if current.get(reference)? != value {
+            return Err(AppError::SecretStore(
+                "Credential verification failed".into(),
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn storage_error(error: rusqlite::Error) -> AppError {

@@ -108,6 +108,7 @@ pub trait ProviderCatalog: Send + Sync {
 }
 
 pub trait AssistantRepository: TaskRepository {
+    fn secret_references(&self) -> Result<Vec<String>, AppError>;
     fn list_models(&self) -> Result<Vec<AssistantModel>, AppError>;
     fn get_model_record(&self, id: &str) -> Result<AssistantModelRecord, AppError>;
     fn save_model_record(

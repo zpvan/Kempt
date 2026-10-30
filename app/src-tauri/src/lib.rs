@@ -1,11 +1,12 @@
 use directories::ProjectDirs;
 use kempt_core::{
     ai::ReqwestAiTransport,
+    assistant::AssistantRepository,
     dispatch::dispatch,
     error::{AppError, ErrorBody},
     service::AppService,
 };
-use kempt_storage::{open_kempt_database, KeyringSecretStore, SqliteRepository};
+use kempt_storage::{migrate_credentials, open_kempt_database, KeyringSecretStore, SqliteRepository};
 use std::{path::PathBuf, sync::Arc};
 
 pub struct AppState {
@@ -84,10 +85,19 @@ fn build_service() -> Result<AppService<SqliteRepository>, AppError> {
         if std::env::var("HEA_SESSION_SECRETS").as_deref() == Ok("1") {
             Arc::new(kempt_core::secrets::MemorySecretStore::default())
         } else {
-            Arc::new(KeyringSecretStore)
+            Arc::new(KeyringSecretStore::new())
         };
+    let session_secrets = std::env::var("HEA_SESSION_SECRETS").as_deref() == Ok("1");
+    let repository = SqliteRepository::new(database);
+    if !session_secrets {
+        migrate_credentials(
+            &repository.secret_references()?,
+            &KeyringSecretStore::legacy(),
+            secrets.as_ref(),
+        )?;
+    }
     Ok(AppService::with_assistant(
-        SqliteRepository::new(database),
+        repository,
         secrets,
         Arc::new(ReqwestAiTransport::new()?),
     ))

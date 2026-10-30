@@ -2,8 +2,8 @@ pub mod assets;
 pub mod http;
 
 use directories::ProjectDirs;
-use kempt_core::{ai::ReqwestAiTransport, error::AppError, service::AppService};
-use kempt_storage::{open_kempt_database, KeyringSecretStore, SqliteRepository};
+use kempt_core::{ai::ReqwestAiTransport, assistant::AssistantRepository, error::AppError, service::AppService};
+use kempt_storage::{migrate_credentials, open_kempt_database, KeyringSecretStore, SqliteRepository};
 use http::ServerService;
 use std::{
     path::{Path, PathBuf},
@@ -68,10 +68,18 @@ pub fn build_service_with_migration(
     let secrets: Arc<dyn kempt_core::secrets::SecretStore> = if session_secrets {
         Arc::new(kempt_core::secrets::MemorySecretStore::default())
     } else {
-        Arc::new(KeyringSecretStore)
+        Arc::new(KeyringSecretStore::new())
     };
+    let repository = SqliteRepository::new(database);
+    if !session_secrets {
+        migrate_credentials(
+            &repository.secret_references()?,
+            &KeyringSecretStore::legacy(),
+            secrets.as_ref(),
+        )?;
+    }
     Ok(AppService::with_assistant(
-        SqliteRepository::new(database),
+        repository,
         secrets,
         Arc::new(ReqwestAiTransport::new()?),
     ))
