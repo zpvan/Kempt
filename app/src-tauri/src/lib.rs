@@ -5,7 +5,7 @@ use kempt_core::{
     error::{AppError, ErrorBody},
     service::AppService,
 };
-use kempt_storage::{Database, KeyringSecretStore, SqliteRepository};
+use kempt_storage::{open_kempt_database, KeyringSecretStore, SqliteRepository};
 use std::{path::PathBuf, sync::Arc};
 
 pub struct AppState {
@@ -66,14 +66,19 @@ fn write_backup(path: String, contents: String) -> Result<(), ErrorBody> {
     std::fs::write(path, contents).map_err(|error| AppError::Storage(error.to_string()).body())
 }
 
-fn data_dir() -> Result<PathBuf, AppError> {
-    ProjectDirs::from("com", "nohea", "kempt")
+fn data_dirs() -> Result<(PathBuf, PathBuf), AppError> {
+    let new_dir = ProjectDirs::from("com", "kempt", "Kempt")
         .map(|dirs| dirs.data_dir().to_path_buf())
-        .ok_or_else(|| AppError::Storage("Cannot resolve application data directory".into()))
+        .ok_or_else(|| AppError::Storage("Cannot resolve application data directory".into()))?;
+    let legacy_dir = ProjectDirs::from("com", "nohea", "kempt")
+        .map(|dirs| dirs.data_dir().to_path_buf())
+        .ok_or_else(|| AppError::Storage("Cannot resolve legacy data directory".into()))?;
+    Ok((new_dir, legacy_dir))
 }
 
 fn build_service() -> Result<AppService<SqliteRepository>, AppError> {
-    let database = Database::open(&data_dir()?.join("kempt.db"))?;
+    let (new_dir, legacy_dir) = data_dirs()?;
+    let database = open_kempt_database(&new_dir, &legacy_dir)?;
     database.migrate()?;
     let secrets: Arc<dyn kempt_core::secrets::SecretStore> =
         if std::env::var("HEA_SESSION_SECRETS").as_deref() == Ok("1") {
