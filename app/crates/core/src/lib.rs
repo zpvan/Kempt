@@ -1,6 +1,7 @@
 pub mod ai;
 pub mod assistant;
 pub mod backup;
+pub mod branding;
 pub mod chat;
 pub mod dispatch;
 pub mod error;
