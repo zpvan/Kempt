@@ -62,7 +62,7 @@ jobs:
           if [ "${{ runner.os }}" = "macOS" ]; then
             tar -czf artifacts/kempt-macos-app.tar.gz -C app/target/release/bundle/macos .
           fi
-          find app/src-tauri/target/release/bundle -type f \( -name '*.dmg' -o -name '*.msi' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' \) -exec cp {} artifacts/ \;
+          find app/target/release/bundle -type f \( -name '*.dmg' -o -name '*.msi' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' \) -exec cp {} artifacts/ \;
           cd artifacts && shasum -a 256 * > "SHA256SUMS-${{ matrix.name }}"
       - uses: actions/upload-artifact@v4
         with:
