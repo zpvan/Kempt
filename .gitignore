@@ -4,6 +4,9 @@
 # AI process documents are local-only
 docs/superpowers/
 
+# Local visual brainstorming
+.superpowers/
+
 # JavaScript dependencies and build outputs
 node_modules/
 dist/
