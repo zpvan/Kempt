@@ -35,7 +35,7 @@ async fn serves_health_rpc_and_spa_fallback() {
         .oneshot(
             axum::http::Request::post("/api/rpc/task.list")
                 .header("content-type", "application/json")
-                .body(axum::body::Body::from(r#"{"userId":"shella"}"#))
+                .body(axum::body::Body::from(r#"{"userId":"admin"}"#))
                 .unwrap(),
         )
         .await

@@ -27,7 +27,7 @@ impl Fixture {
         for id in ids {
             fixture
                 .service
-                .upsert_task("shella", sample_task(id))
+                .upsert_task("admin", sample_task(id))
                 .unwrap();
         }
         fixture

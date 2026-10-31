@@ -41,7 +41,7 @@ export default function App() {
   const notifications = useNotifications();
   const queryClient = useQueryClient();
   const migrationAttempted = useRef(false);
-  const [currentUser, setCurrentUser] = useState(() => localStorage.getItem("kempt.currentUser") || "shella");
+  const [currentUser, setCurrentUser] = useState(() => localStorage.getItem("kempt.currentUser") || "admin");
   const [view, setView] = useState<View>("board");
   const [editing, setEditing] = useState<Task | null | undefined>(undefined);
   const [progressTask, setProgressTask] = useState<Task | null>(null);
@@ -58,7 +58,7 @@ export default function App() {
   const [toast, setToast] = useState("");
   const usersQuery = useRpcQuery<AppUser[]>("user.list");
   const users = usersQuery.data ?? [];
-  const activeUserId = users.some((user) => user.id === currentUser) ? currentUser : users[0]?.id ?? "shella";
+  const activeUserId = users.some((user) => user.id === currentUser) ? currentUser : users[0]?.id ?? "admin";
   const activeUser = users.find((user) => user.id === activeUserId);
   const tasksQuery = useRpcQuery<Task[]>("task.list", { userId: activeUserId }, usersQuery.isSuccess);
   const trashQuery = useRpcQuery<Task[]>("task.trash", { userId: activeUserId }, trashOpen && usersQuery.isSuccess);
@@ -200,7 +200,7 @@ export default function App() {
     deleteUserMutation.mutate({ id: user.id }, {
       onSuccess: (nextUsers) => {
         applyUsers(nextUsers);
-        if (activeUserId === user.id) setCurrentUser(nextUsers[0]?.id || "shella");
+        if (activeUserId === user.id) setCurrentUser(nextUsers[0]?.id || "admin");
         setToast(t("userDeleted", { name: user.name }));
       },
       onError: userMutationError,
@@ -229,7 +229,7 @@ export default function App() {
           <button className={`reminder-button ${reminders.length ? "has-reminders" : ""}`} onClick={() => setReminderOpen(!reminderOpen)} aria-label={t("remindersAria", { count: reminders.length })}><Bell size={19} />{reminders.length > 0 && <span>{reminders.length}</span>}</button>
           <label className="search-box"><Search size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("searchWork")} aria-label={t("searchWork")} />{search && <button onClick={() => setSearch("")} aria-label={t("clearSearch")}><X size={15} /></button>}</label>
           <button className="assistant-button" onClick={() => setAssistantOpen(true)} aria-label={t("assistant")} title={t("assistant")}><Bot size={19} /></button>
-          <button className="user-button" onClick={() => setUserOpen(true)} aria-label={t("userManagement")}><UsersRound size={17} /><span>{activeUser?.name ?? "shella"}</span></button>
+          <button className="user-button" onClick={() => setUserOpen(true)} aria-label={t("userManagement")}><UsersRound size={17} /><span>{activeUser?.name ?? "admin"}</span></button>
           <div className="preference-controls">
             <button className="icon-button preference-button" onClick={toggleTheme} aria-label={t(theme === "light" ? "switchDark" : "switchLight")} title={t(theme === "light" ? "switchDark" : "switchLight")}>{theme === "light" ? <Moon size={18} /> : <Sun size={18} />}</button>
             <button className="language-button" onClick={toggleLanguage} aria-label={t(language === "zh" ? "switchEnglish" : "switchChinese")} title={t(language === "zh" ? "switchEnglish" : "switchChinese")}><Languages size={18} /></button>

@@ -60,7 +60,7 @@ export default function DataDialog({ userId, onClose, onOpenTrash }: Props) {
         const preferences = backup.preferences;
         if (preferences?.theme) localStorage.setItem("kempt.theme", preferences.theme);
         if (preferences?.language) localStorage.setItem("kempt.language", preferences.language);
-        localStorage.setItem("kempt.currentUser", preferences?.currentUser || "shella");
+        localStorage.setItem("kempt.currentUser", preferences?.currentUser || "admin");
         onClose();
       },
       onError: (reason) => setError(reason.message),

@@ -61,7 +61,7 @@ impl<R: TaskRepository> AppService<R> {
             .into_iter()
             .find(|user| user.id == id)
             .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
-        if id == "shella" || user.is_default {
+        if id == "admin" || user.is_default {
             return Err(AppError::Conflict(
                 "The default workspace cannot be deleted".into(),
             ));

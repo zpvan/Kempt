@@ -19,7 +19,7 @@ test("creates and reloads a persisted task", async ({ page }) => {
   await expect(page.getByText("E2E Task", { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText("E2E Task", { exact: true })).toBeVisible();
-  const response = await page.request.post("/api/rpc/task.list", { data: { userId: "shella" } });
+  const response = await page.request.post("/api/rpc/task.list", { data: { userId: "admin" } });
   expect(response.ok()).toBeTruthy();
   const tasks = await response.json();
   expect(tasks).toHaveLength(1);

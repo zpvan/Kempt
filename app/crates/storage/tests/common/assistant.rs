@@ -49,19 +49,19 @@ impl AssistantFixture {
             text: "Proposal".into(),
             actions: vec![AssistantActionDraft {
                 action: action.into(),
-                payload: serde_json::json!({"workspaceId":"shella","title":"Created","dueDate":"2026-01-02"}),
+                payload: serde_json::json!({"workspaceId":"admin","title":"Created","dueDate":"2026-01-02"}),
                 summary: "Create a task".into(),
             }],
         });
         self.service
             .chat(ChatRequest {
-                workspace_id: "shella".into(),
+                workspace_id: "admin".into(),
                 model_id: None,
                 message: "Create".into(),
             })
             .await
             .unwrap();
-        self.service.list_actions("shella").unwrap().remove(0)
+        self.service.list_actions("admin").unwrap().remove(0)
     }
 }
 

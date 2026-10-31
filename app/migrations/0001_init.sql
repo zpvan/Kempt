@@ -83,4 +83,4 @@ CREATE TABLE assistant_actions (
 CREATE INDEX assistant_actions_workspace_idx ON assistant_actions(workspace_id, status);
 
 INSERT INTO app_users (id, name, is_default, created_at)
-VALUES ('shella', 'Shella', 1, 0);
+VALUES ('admin', 'admin', 1, 0);

@@ -8,7 +8,7 @@ describe("HttpWorkspaceService", () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([{ id: "task-1" }]), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     const client = new HttpWorkspaceService();
-    await expect(client.call("task.list", { userId: "shella" })).resolves.toEqual([{ id: "task-1" }]);
+    await expect(client.call("task.list", { userId: "admin" })).resolves.toEqual([{ id: "task-1" }]);
     expect(fetchMock).toHaveBeenCalledWith("/api/rpc/task.list", expect.objectContaining({ method: "POST" }));
   });
 

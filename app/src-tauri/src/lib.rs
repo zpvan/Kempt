@@ -115,7 +115,7 @@ mod tests {
         let database = Database::open(&dir.path().join("desktop.db")).unwrap();
         database.migrate().unwrap();
         let service = AppService::new(SqliteRepository::new(database));
-        let payload = serde_json::json!({"userId":"shella"});
+        let payload = serde_json::json!({"userId":"admin"});
         let expected = dispatch(&service, "task.list", payload.clone())
             .await
             .unwrap();

@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn parses_provider_text_and_actions() {
-        let result = parse_chat_content(r#"{"text":"Done","actions":[{"action":"create_task","payload":{"workspaceId":"shella"},"summary":"Create"}]}"#).unwrap();
+        let result = parse_chat_content(r#"{"text":"Done","actions":[{"action":"create_task","payload":{"workspaceId":"admin"},"summary":"Create"}]}"#).unwrap();
         assert_eq!(result.text, "Done");
         assert_eq!(result.actions.len(), 1);
     }

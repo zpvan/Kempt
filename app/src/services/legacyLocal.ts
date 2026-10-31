@@ -22,10 +22,10 @@ export async function legacyLocalMigration(service: WorkspaceService, storage: S
     format: "kempt-full-backup",
     version: 3,
     exportedAt: new Date().toISOString(),
-    users: [{ id: "shella", name: "Shella", isDefault: true, createdAt: new Date(0).toISOString() }],
+    users: [{ id: "admin", name: "admin", isDefault: true, createdAt: new Date(0).toISOString() }],
     tasks: [...active, ...trash].map((task) => ({
       ...task,
-      userId: "shella",
+      userId: "admin",
       parentId: task.parentId ?? null,
       sourceUrl: task.sourceUrl ?? null,
       deletedAt: task.deletedAt ? new Date(task.deletedAt).toISOString() : null,
