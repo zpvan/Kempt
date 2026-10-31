@@ -1,6 +1,6 @@
 # Kempt
 
-Kempt is an open-source, local-first task and work-log application for macOS, Windows, and Linux. It combines one React interface with one Rust business core, so the desktop app and local browser mode share the same behavior and data model.
+Kempt is an open-source, local-first task and work-log application for macOS and Windows. It combines one React interface with one Rust business core, so the desktop app and local browser mode share the same behavior and data model.
 
 The Chinese UI name is **企理**. New installations default to English and can be switched to Chinese.
 
@@ -29,7 +29,7 @@ The Chinese UI name is **企理**. New installations default to English and can 
 
 ### Desktop
 
-The Tauri app runs on macOS, Windows, and Linux. It calls the shared Rust dispatcher directly and does not need a local HTTP server.
+The Tauri app runs on macOS and Windows. It calls the shared Rust dispatcher directly and does not need a local HTTP server.
 
 ### Local browser
 
@@ -139,7 +139,7 @@ See [data documentation](docs/migration.md) for storage details.
 
 ## Releases
 
-The GitHub Actions workflow can build desktop packages and `kempt-server` binaries for macOS, Windows, and Linux. Manual workflow runs upload Artifacts; version tags can create GitHub Releases after all platform builds succeed.
+The GitHub Actions workflow can build desktop packages and `kempt-server` binaries for macOS and Windows. Manual workflow runs upload Artifacts; version tags can create GitHub Releases after both platform builds succeed.
 
 See [release instructions](docs/release.md) for artifact names, checksums, and platform requirements. The availability of a specific installer depends on published releases or a local build. Current local verification results and unverified items are recorded in [docs/verification.md](docs/verification.md).
 

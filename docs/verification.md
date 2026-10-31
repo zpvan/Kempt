@@ -1,6 +1,6 @@
 # Kempt verification record
 
-Date: 2026-10-31
+Date: 2026-11-01
 Platform for local artifacts: macOS arm64
 
 ## Passed locally
@@ -11,7 +11,7 @@ Platform for local artifacts: macOS arm64
   - default English `Kempt`, switching to Chinese `企理`, and preference persistence after reload;
   - task creation and persistence after reload;
   - workspace creation and switching.
-- Rust workspace: 56 tests across Core, Storage, Server, and Tauri adapter suites.
+- Rust workspace: 57 tests across Core, Storage, Server, and Tauri adapter suites.
 - `cargo fmt --all --check` and `cargo clippy --workspace --all-targets -- -D warnings`: passed.
 - ESLint: no errors; existing hook warnings remain.
 - Vite production build.
@@ -30,12 +30,12 @@ Paths:
 - `app/target/release/kempt-server`
 - `app/target/release/bundle/macos/Kempt.app`
 
-These are local single-architecture release measurements, not estimates for Windows, Linux, or a macOS universal build.
+These are local single-architecture release measurements, not estimates for Windows or a macOS universal build.
 
 ## Not yet verified
 
-- Windows and Linux builds and native desktop behavior have not run locally.
-- The GitHub Actions workflow has not been triggered, so hosted Artifacts and Releases have not been verified.
+- Windows native desktop behavior has not been tested interactively on a Windows device. Linux is not supported.
+- CI artifact builds do not replace interactive Windows installer and desktop checks.
 - Native desktop checklist items in `app/e2e/desktop-smoke.md` remain unchecked.
 - Cold start with 1,000 tasks and idle memory have not been measured.
 - No DMG was built in this worktree.

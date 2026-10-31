@@ -21,6 +21,6 @@ AI models, messages, actions, and credentials are not part of the task backup.
 
 ## Credentials
 
-Persistent Assistant credentials use macOS Keychain, Windows Credential Manager, or Linux Secret Service under `com.kempt.workflow`. API Keys are never written to SQLite or diagnostic logs.
+Persistent Assistant credentials use macOS Keychain or Windows Credential Manager under `com.kempt.workflow`. API Keys are never written to SQLite or diagnostic logs.
 
 The explicit `--session-secrets` server option or `HEA_SESSION_SECRETS=1` desktop setting uses process-only secrets. These values disappear on process exit and are not written to SQLite by the application.

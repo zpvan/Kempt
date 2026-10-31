@@ -16,7 +16,6 @@ jobs:
         include:
           - { os: macos-latest, name: macos }
           - { os: windows-latest, name: windows-x86_64 }
-          - { os: ubuntu-latest, name: linux-x86_64 }
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
@@ -30,16 +29,11 @@ jobs:
       - uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: app
-      - if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
       - run: npm ci
         working-directory: app
       - run: npm run check && npm test && npm run lint && npm run build:ui
         working-directory: app
       - run: cargo test --workspace
-        working-directory: app
-      - if: runner.os == 'Linux'
-        run: npx playwright install-deps chromium
         working-directory: app
       - run: npx playwright install chromium
         working-directory: app
@@ -62,8 +56,8 @@ jobs:
           if [ "${{ runner.os }}" = "macOS" ]; then
             tar -czf artifacts/kempt-macos-app.tar.gz -C app/target/release/bundle/macos .
           fi
-          find app/target/release/bundle -type f \( -name '*.dmg' -o -name '*.msi' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' \) -exec cp {} artifacts/ \;
-              cd artifacts
+          find app/target/release/bundle -type f \( -name '*.dmg' -o -name '*.msi' -o -name '*.exe' \) -exec cp {} artifacts/ \;
+          cd artifacts
           if [ "${{ runner.os }}" = "Windows" ]; then
             sha256sum * > "SHA256SUMS-${{ matrix.name }}"
           else
@@ -77,7 +71,7 @@ jobs:
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     permissions:
       contents: write
     steps:
