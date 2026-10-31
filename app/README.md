@@ -1,8 +1,8 @@
-# Kempt
+# Kempt developer guide
 
-A local-first task and work-log application with one React UI and one Rust business core. The same code runs as a local browser server and as a Tauri desktop app on macOS, Windows, and Linux.
+This directory contains the shared React UI, Rust workspace, local browser server, and Tauri desktop shell. See the [root README](../README.md) for the project overview, features, source setup, and contribution guidance.
 
-## Architecture
+## Directory map
 
 - `src/`: shared React/TypeScript UI.
 - `crates/core/`: business rules, DTOs, AI workflows, and shared JSON-RPC dispatch.
@@ -36,7 +36,7 @@ Run the desktop development app:
 npm run dev:desktop
 ```
 
-## Production
+## Production builds
 
 Build the local browser server:
 
@@ -65,7 +65,7 @@ npm run check
 npm test
 npm run lint
 npm run test:e2e
-cargo fmt --check
+cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
@@ -76,12 +76,12 @@ The Playwright configuration starts a real Rust server with a temporary SQLite d
 
 The default database is `kempt.db` in the Kempt OS application data directory. Migrations and restore operations create automatic SQLite backups. The server accepts loopback addresses only. New installations default to English; the interface can be switched to Chinese (企理) and preserves that preference.
 
-AI is optional and online. Credentials use the OS keychain by default. For an explicit process-only fallback:
+AI is optional and online. Credentials use the OS keychain by default. For the server's explicit process-only fallback:
 
 ```bash
 ./target/release/kempt-server serve --session-secrets
 ```
 
-For the desktop app, set `HEA_SESSION_SECRETS=1`. Session-only keys disappear when the process exits and are never written to SQLite by the application.
+Session-only keys disappear when the process exits and are never written to SQLite by the application.
 
-See `../docs/migration.md`, `../docs/release.md`, and `../docs/verification.md` for upgrade, release, and current verification details.
+See [data documentation](../docs/migration.md), [release instructions](../docs/release.md), and [verification results](../docs/verification.md) for storage, release, and current verification details.
