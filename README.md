@@ -137,6 +137,27 @@ Playwright tests start a real Rust server with a temporary SQLite database. See 
 
 See [data documentation](docs/migration.md) for storage details.
 
+## Install on macOS
+
+Current releases are ad-hoc signed and are not notarized by Apple. Download Kempt only from the [official GitHub Releases page](https://github.com/zpvan/Kempt/releases).
+
+1. Download `Kempt_<version>_aarch64.dmg` and `SHA256SUMS-macos` from the same release.
+2. Verify the DMG checksum and compare it with the DMG entry in `SHA256SUMS-macos`:
+
+   ```bash
+   shasum -a 256 Kempt_<version>_aarch64.dmg
+   ```
+
+3. Open the DMG and drag `Kempt.app` to `/Applications`.
+4. Try right-clicking `Kempt.app` and choosing **Open**.
+5. If macOS reports that Kempt is damaged, remove the quarantine attribute from this verified download:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Kempt.app
+   ```
+
+This command removes the quarantine attribute only from Kempt; it does not disable Gatekeeper globally. The warning is expected for the current unsigned release and does not by itself mean the download is corrupted. A future Developer ID signed and notarized release will not require this extra step.
+
 ## Releases
 
 The GitHub Actions workflow can build desktop packages and `kempt-server` binaries for macOS and Windows. Manual workflow runs upload Artifacts; version tags can create GitHub Releases after both platform builds succeed.

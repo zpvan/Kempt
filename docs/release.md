@@ -46,6 +46,22 @@ Get-FileHash -Algorithm SHA256 <downloaded-file>
 
 Compare the output with the corresponding line in `SHA256SUMS-<platform>`.
 
+## Installing the unsigned macOS app
+
+The current free macOS release uses an ad-hoc signature and is not notarized by Apple. Gatekeeper may show a warning or report that the app is damaged when it is opened from a quarantined download.
+
+1. Download `Kempt_<version>_aarch64.dmg` and `SHA256SUMS-macos` from the same GitHub Release.
+2. Run `shasum -a 256 Kempt_<version>_aarch64.dmg` and compare the output with the DMG line in `SHA256SUMS-macos`.
+3. Open the verified DMG and drag `Kempt.app` to `/Applications`.
+4. Try right-clicking the app and choosing **Open**. This option is not available for every unsigned-app warning.
+5. If macOS still reports that Kempt is damaged, run:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Kempt.app
+   ```
+
+Run this command only for an official Kempt download whose checksum has been reviewed. It removes the quarantine attribute from Kempt only; do not disable Gatekeeper system-wide. This workaround is not a substitute for Developer ID signing and notarization.
+
 ## Local macOS build
 
 ```bash
