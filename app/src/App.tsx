@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, format, isBefore, startOfDay } from "date-fns";
 import { enUS, zhCN } from "date-fns/locale";
-import { LayoutDashboard, Columns3, ChartGantt, Plus, Search, CheckCircle2, ListTodo, TimerReset, Cloud, X, Bell, NotebookText, Database, Server, RefreshCw, Languages, Moon, Sun, UsersRound, FolderKanban, Bot } from "lucide-react";
+import { LayoutDashboard, Columns3, ChartGantt, Plus, Search, CheckCircle2, ListTodo, TimerReset, X, Bell, NotebookText, Database, Server, RefreshCw, Languages, Moon, Sun, UsersRound, FolderKanban, Bot } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import TaskDialog from "@/components/TaskDialog";
 import ProgressDialog from "@/components/ProgressDialog";
@@ -79,7 +79,6 @@ export default function App() {
   const deleteLogMutation = useRpcMutation<{ userId: string; id: string }, Task[]>("task.deleteLog");
   const createUserMutation = useRpcMutation<{ name: string }, { user: AppUser; users: AppUser[] }>("user.create");
   const deleteUserMutation = useRpcMutation<{ id: string }, AppUser[]>("user.delete");
-  const syncing = tasksQuery.isFetching || upsert.isPending || remove.isPending || statusMutation.isPending || logMutation.isPending || restoreMutation.isPending || reorderMutation.isPending || purgeMutation.isPending || updateLogMutation.isPending || deleteLogMutation.isPending;
 
   useEffect(() => {
     if (migrationAttempted.current) return;
@@ -220,7 +219,6 @@ export default function App() {
     <aside className="sidebar glass-panel">
       <button className="brand" onClick={() => setView("focus")} aria-label={t("backToday")}><span className="brand-mark"><i /><i /><i /></span><span className="brand-name">{language === "zh" ? "企理" : "Kempt"}</span></button>
       <nav className="main-nav" aria-label={t("mainNavigation")}>{navItems.map(({ id, icon: Icon }) => <button key={id} className={view === id ? "active" : ""} onClick={() => setView(id)}><Icon size={20} /><span>{t(id === "focus" ? "today" : id)}</span></button>)}</nav>
-      <div className="sidebar-foot"><Cloud size={16} /><span>{t(syncing ? "syncingServer" : "syncedBackup")}</span></div>
     </aside>
     <main className="workspace">
       <header className="topbar">
@@ -253,7 +251,7 @@ export default function App() {
         {view === "gantt" && <GanttView tasks={filtered} onEdit={setEditing} onMove={moveTaskDates} />}
         {view === "logs" && <LogsView tasks={filtered} query={search} onEdit={setEditing} onBoard={() => setView("board")} onEditLog={(task, log) => setEditingLog({ task, log })} onDeleteLog={deleteLog} />}
       </div>
-      <footer className="workspace-footer"><span>{t("footerSlogan")}</span><span>{t(syncing ? "syncingChanges" : "syncedFooter")}</span></footer>
+      <footer className="workspace-footer"><span>{t("footerSlogan")}</span></footer>
     </main>
     {reminderOpen && <ReminderCenter tasks={reminders} onClose={() => setReminderOpen(false)} onEdit={setEditing} onComplete={(id) => updateStatus(id, "done")} />}
     {editing !== undefined && <TaskDialog key={editing?.id ?? `new-${newStatus}`} userId={activeUserId} task={editing} defaultStatus={newStatus} onClose={() => setEditing(undefined)} onSave={saveTask} onDelete={editing ? deleteTask : undefined} onUpdate={(task) => { setEditing(undefined); setProgressTask(task); }} />}
