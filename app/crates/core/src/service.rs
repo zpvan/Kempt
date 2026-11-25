@@ -115,6 +115,27 @@ impl<R: TaskRepository> AppService<R> {
         self.repository.upsert_task(user_id, &task)
     }
 
+    pub fn move_task(
+        &self,
+        user_id: &str,
+        id: &str,
+        status: Status,
+        ordered_ids: &[String],
+    ) -> Result<Vec<Task>, AppError> {
+        if ordered_ids.is_empty()
+            || ordered_ids.len() > 5000
+            || !ordered_ids.iter().any(|task_id| task_id == id)
+        {
+            return Err(AppError::Validation(
+                "orderedIds must contain the moved task and 1 to 5000 IDs".into(),
+            ));
+        }
+        let task = self.repository.get_task(user_id, id)?;
+        let task = task_with_status(task, status);
+        self.repository.upsert_task(user_id, &task)?;
+        self.repository.reorder(user_id, ordered_ids)
+    }
+
     pub fn add_log(
         &self,
         user_id: &str,

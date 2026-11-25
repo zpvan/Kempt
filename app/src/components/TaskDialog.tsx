@@ -50,7 +50,7 @@ export default function TaskDialog({ userId, task, onClose, onSave, onDelete, de
   };
   const currentProgress = checklist.length ? (form.status === "done" ? 100 : checklistProgress(checklist)) : form.status === "done" ? 100 : form.progress;
   return <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
-    <section className="dialog task-dialog" role="dialog" aria-modal="true" aria-labelledby="task-dialog-title">
+    <section className={`dialog task-dialog ${task ? "" : "create-dialog"}`} role="dialog" aria-modal="true" aria-labelledby="task-dialog-title">
       <header className="dialog-head">
         <div><span className="overline">WORK ITEM</span><h2 id="task-dialog-title">{t(task ? "editWork" : "newWork")}</h2></div>
         <div className="dialog-head-actions">{task && onUpdate && <button type="button" className="button secondary compact" onClick={() => onUpdate(task)}><NotebookPen size={15} />{t("recordProgress")}</button>}<button className="icon-button" onClick={close} aria-label={t("close")}><X size={20} /></button></div>
@@ -59,20 +59,22 @@ export default function TaskDialog({ userId, task, onClose, onSave, onDelete, de
         <div className="form-body">
           {(formRestored || itemsRestored) && <p className="draft-restored">{t("draftRestored")}</p>}
           <label className="field full"><span>{t("workTitle")}</span><input autoFocus value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={t("titlePlaceholder")} maxLength={120} /></label>
-          <label className="field full"><span>{t("description")}</span><textarea value={form.description} onChange={(e) => set("description", e.target.value)} placeholder={t("descriptionPlaceholder")} rows={3} /></label>
+          <label className="field full"><span>{t("description")}</span><textarea value={form.description} onChange={(e) => set("description", e.target.value)} placeholder={t("descriptionPlaceholder")} rows={task ? 3 : 2} /></label>
           <label className="field"><span>{t("project")}</span><input value={form.project} onChange={(e) => set("project", e.target.value)} placeholder={t("defaultProject")} /></label>
-          <label className="field"><span>{t("currentStatus")}</span><select value={form.status} onChange={(e) => set("status", e.target.value as Status)}>{(["todo", "doing", "done"] as Status[]).map((key) => <option key={key} value={key}>{t(statusKeys[key])}</option>)}</select></label>
-          <label className="field full"><span>{t("sourceOptional")}</span><input type="url" value={form.sourceUrl || ""} onChange={(e) => set("sourceUrl", e.target.value)} placeholder="https://" /></label>
-          <label className="field"><span>{t("startDate")}</span><input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} /></label>
+          {task && <label className="field"><span>{t("currentStatus")}</span><select value={form.status} onChange={(e) => set("status", e.target.value as Status)}>{(["todo", "doing", "done"] as Status[]).map((key) => <option key={key} value={key}>{t(statusKeys[key])}</option>)}</select></label>}
+          {task && <label className="field full"><span>{t("sourceOptional")}</span><input type="url" value={form.sourceUrl || ""} onChange={(e) => set("sourceUrl", e.target.value)} placeholder="https://" /></label>}
+          {task && <label className="field"><span>{t("startDate")}</span><input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} /></label>}
           <label className="field"><span>{t("dueDate")}</span><input type="date" value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} /></label>
-          <div className="field full"><span>{t("priority")}</span><div className="segment-control three">{(["low", "medium", "high"] as Priority[]).map((p) => <button type="button" key={p} className={form.priority === p ? "active" : ""} onClick={() => set("priority", p)}>{t(priorityKeys[p])}</button>)}</div></div>
-          <div className="field full checklist-field"><span><ListChecks size={14} />{t("checklist")}<b>{checklist.length ? `${checklist.filter((item) => item.completed).length}/${checklist.length}` : ""}</b></span>
-            <div className="checklist-items">{checklist.map((item) => <div className={`checklist-item ${item.completed ? "completed" : ""}`} key={item.id}><label><input type="checkbox" checked={item.completed} onChange={() => { setChecklist(checklist.map((entry) => entry.id === item.id ? { ...entry, completed: !entry.completed } : entry)); if (form.status === "done" && item.completed) set("status", "doing"); }} /><span>{item.content}</span></label><button type="button" className="icon-button small" onClick={() => setChecklist(checklist.filter((entry) => entry.id !== item.id))} aria-label={t("delete")}><X size={14} /></button></div>)}</div>
-            {!checklist.length && <p className="checklist-empty">{t("checklistEmpty")}</p>}
-            <div className="checklist-add"><input value={newItem} onChange={(event) => setNewItem(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addItem(); } }} placeholder={t("checklistPlaceholder")} maxLength={500} /><button type="button" className="button secondary compact" disabled={!newItem.trim()} onClick={addItem}><Plus size={14} />{t("addChecklist")}</button></div>
-            {checklist.length > 0 && <small className="checklist-note">{t("checklistAuto")}</small>}
-          </div>
-          <label className="field full range-field"><span>{checklist.length ? t("checklistProgress") : t("completionProgress")} <b>{currentProgress}%</b></span><input type="range" min="0" max="100" step="5" value={currentProgress} disabled={checklist.length > 0 || form.status === "done"} onChange={(e) => set("progress", Number(e.target.value))} /></label>
+          {task && <>
+            <div className="field full"><span>{t("priority")}</span><div className="segment-control three">{(["low", "medium", "high"] as Priority[]).map((p) => <button type="button" key={p} className={form.priority === p ? "active" : ""} onClick={() => set("priority", p)}>{t(priorityKeys[p])}</button>)}</div></div>
+            <div className="field full checklist-field"><span><ListChecks size={14} />{t("checklist")}<b>{checklist.length ? `${checklist.filter((item) => item.completed).length}/${checklist.length}` : ""}</b></span>
+              <div className="checklist-items">{checklist.map((item) => <div className={`checklist-item ${item.completed ? "completed" : ""}`} key={item.id}><label><input type="checkbox" checked={item.completed} onChange={() => { setChecklist(checklist.map((entry) => entry.id === item.id ? { ...entry, completed: !entry.completed } : entry)); if (form.status === "done" && item.completed) set("status", "doing"); }} /><span>{item.content}</span></label><button type="button" className="icon-button small" onClick={() => setChecklist(checklist.filter((entry) => entry.id !== item.id))} aria-label={t("delete")}><X size={14} /></button></div>)}</div>
+              {!checklist.length && <p className="checklist-empty">{t("checklistEmpty")}</p>}
+              <div className="checklist-add"><input value={newItem} onChange={(event) => setNewItem(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addItem(); } }} placeholder={t("checklistPlaceholder")} maxLength={500} /><button type="button" className="button secondary compact" disabled={!newItem.trim()} onClick={addItem}><Plus size={14} />{t("addChecklist")}</button></div>
+              {checklist.length > 0 && <small className="checklist-note">{t("checklistAuto")}</small>}
+            </div>
+            <label className="field full range-field"><span>{checklist.length ? t("checklistProgress") : t("completionProgress")} <b>{currentProgress}%</b></span><input type="range" min="0" max="100" step="5" value={currentProgress} disabled={checklist.length > 0 || form.status === "done"} onChange={(e) => set("progress", Number(e.target.value))} /></label>
+          </>}
           {error && <p className="form-error" role="alert">{error}</p>}
         </div>
         <footer className="dialog-footer">

@@ -48,6 +48,15 @@ struct Reorder {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct MoveTask {
+    user_id: String,
+    id: String,
+    status: Status,
+    ordered_ids: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct SetStatus {
     user_id: String,
     id: String,
@@ -127,6 +136,15 @@ where
         "task.reorder" => {
             let input = parse::<Reorder>(payload)?;
             output(service.reorder(&input.user_id, &input.ordered_ids)?)
+        }
+        "task.move" => {
+            let input = parse::<MoveTask>(payload)?;
+            output(service.move_task(
+                &input.user_id,
+                &input.id,
+                input.status,
+                &input.ordered_ids,
+            )?)
         }
         "task.setStatus" => {
             let input = parse::<SetStatus>(payload)?;

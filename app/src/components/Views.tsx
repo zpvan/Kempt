@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { addDays, differenceInCalendarDays, format, startOfDay } from "date-fns";
-import { ArrowUpToLine, CalendarDays, Check, ChevronRight, Clock3, ExternalLink, ListChecks, NotebookPen, Plus, Sparkles } from "lucide-react";
+import { ArrowUpToLine, CalendarDays, Check, ChevronDown, ChevronRight, ChevronUp, Clock3, ExternalLink, ListChecks, NotebookPen, Plus, Sparkles } from "lucide-react";
 import { enUS, zhCN } from "date-fns/locale";
 import { formatShort, type Status, type Task } from "@/lib/tasks";
 import { usePreferences } from "@/providers/preferences";
@@ -10,54 +10,102 @@ const hintKeys = { todo: "hintTodo", doing: "hintDoing", done: "hintDone" } as c
 const priorityKeys = { low: "priorityLow", medium: "priorityMedium", high: "priorityHigh" } as const;
 const priorityTitleKeys = { low: "lowPriority", medium: "mediumPriority", high: "highPriority" } as const;
 const byPosition = (a: Task, b: Task) => (a.position ?? 0) - (b.position ?? 0) || b.createdAt - a.createdAt;
-function reorderIds(list: Task[], draggedId: string, targetId?: string) {
+type DropPlacement = "before" | "after";
+
+export function reorderIds(list: Task[], draggedId: string, targetId?: string, placement: DropPlacement = "before") {
   const ids = list.map((task) => task.id);
+  if (draggedId === targetId) return ids;
   const from = ids.indexOf(draggedId);
-  if (from < 0) return ids;
-  ids.splice(from, 1);
-  const target = targetId ? ids.indexOf(targetId) : ids.length;
-  ids.splice(target < 0 ? ids.length : target, 0, draggedId);
+  if (from >= 0) ids.splice(from, 1);
+  let target = targetId ? ids.indexOf(targetId) : ids.length;
+  if (target < 0) target = ids.length;
+  else if (targetId && placement === "after") target += 1;
+  ids.splice(target, 0, draggedId);
   return ids;
 }
 
-export function TaskCard({ task, onEdit, onUpdate, onDragStart, onDropTask, onPin, dropTargetId, onDropTargetChange }: { task: Task; onEdit: (task: Task) => void; onUpdate?: (task: Task) => void; onDragStart?: (e: React.DragEvent, task: Task) => void; onDropTask?: (e: React.DragEvent, task: Task) => void; onPin?: (task: Task) => void; dropTargetId?: string | null; onDropTargetChange?: (task: Task | null) => void }) {
+const placementAtPointer = (event: React.DragEvent): DropPlacement => {
+  const rect = event.currentTarget.getBoundingClientRect();
+  return event.clientY > rect.top + rect.height / 2 ? "after" : "before";
+};
+
+interface TaskCardProps {
+  task: Task;
+  onEdit: (task: Task) => void;
+  onUpdate?: (task: Task) => void;
+  onDragStart?: (event: React.DragEvent, task: Task) => void;
+  onDropTask?: (event: React.DragEvent, task: Task) => void;
+  onPin?: (task: Task) => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  dropTargetId?: string | null;
+  dropPlacement?: DropPlacement | null;
+  onDropTargetChange?: (task: Task | null, placement?: DropPlacement) => void;
+}
+
+export function TaskCard({ task, onEdit, onUpdate, onDragStart, onDropTask, onPin, onMoveUp, onMoveDown, canMoveUp, canMoveDown, dropTargetId, dropPlacement, onDropTargetChange }: TaskCardProps) {
   const { language, t } = usePreferences();
   const [dragging, setDragging] = useState(false);
   const dragOver = dropTargetId === task.id;
-  const startDrag = (e: React.DragEvent) => {
+  const startDrag = (event: React.DragEvent) => {
     if (!onDragStart) return;
     setDragging(true);
-    const rect = e.currentTarget.getBoundingClientRect();
-    const ghost = e.currentTarget.cloneNode(true) as HTMLElement;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ghost = event.currentTarget.cloneNode(true) as HTMLElement;
     ghost.classList.add("drag-ghost");
     ghost.style.width = `${rect.width}px`;
     document.body.appendChild(ghost);
-    e.dataTransfer.setDragImage(ghost, e.clientX - rect.left, e.clientY - rect.top);
+    event.dataTransfer.setDragImage(ghost, event.clientX - rect.left, event.clientY - rect.top);
     window.setTimeout(() => ghost.remove(), 0);
-    onDragStart(e, task);
+    onDragStart(event, task);
   };
-  return <article className={`task-card priority-${task.priority} ${dragOver ? "drag-over" : ""} ${dragging ? "dragging" : ""}`} draggable={!!onDragStart} onDragStart={startDrag} onDragEnd={() => { setDragging(false); onDropTargetChange?.(null); }} onDragEnter={() => { if (onDropTask) onDropTargetChange?.(task); }} onDragOver={(e) => { if (onDropTask) { e.preventDefault(); onDropTargetChange?.(task); } }} onDrop={(e) => { if (onDropTask) { e.preventDefault(); e.stopPropagation(); onDropTargetChange?.(null); onDropTask(e, task); } }} onClick={() => onEdit(task)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onEdit(task)}>
-    <div className="task-card-top"><span className="project-label">{task.project}</span><span className="task-card-top-actions">{onPin && <button className="pin-task-button" onClick={(e) => { e.stopPropagation(); onPin(task); }} aria-label={t("pinTask", { title: task.title })} title={t("pinToTop")}><ArrowUpToLine size={13} /></button>}<span className={`priority-dot ${task.priority}`} title={t(priorityTitleKeys[task.priority])} /></span></div>
+  const updateDropTarget = (event: React.DragEvent) => {
+    if (onDropTask) onDropTargetChange?.(task, placementAtPointer(event));
+  };
+  return <article className={`task-card priority-${task.priority} ${dragOver ? "drag-over" : ""} ${dragOver && dropPlacement === "after" ? "drag-after" : ""} ${dragging ? "dragging" : ""}`} draggable={!!onDragStart} onDragStart={startDrag} onDragEnd={() => { setDragging(false); onDropTargetChange?.(null); }} onDragEnter={updateDropTarget} onDragOver={(event) => { if (onDropTask) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; updateDropTarget(event); } }} onDrop={(event) => { if (onDropTask) { event.preventDefault(); event.stopPropagation(); onDropTargetChange?.(null); onDropTask(event, task); } }} onClick={() => onEdit(task)} tabIndex={0} onKeyDown={(event) => event.key === "Enter" && onEdit(task)}>
+    <div className="task-card-top"><span className="project-label">{task.project}</span><span className="task-card-top-actions">
+      {(onMoveUp || onMoveDown) && <span className="task-order-controls">
+        {onMoveUp && <button type="button" className="task-order-button" disabled={!canMoveUp} onClick={(event) => { event.stopPropagation(); onMoveUp(); }} aria-label={t("moveTaskUp", { title: task.title })} title={t("moveUp")}><ChevronUp size={14} /></button>}
+        {onMoveDown && <button type="button" className="task-order-button" disabled={!canMoveDown} onClick={(event) => { event.stopPropagation(); onMoveDown(); }} aria-label={t("moveTaskDown", { title: task.title })} title={t("moveDown")}><ChevronDown size={14} /></button>}
+      </span>}
+      {onPin && <button type="button" className="pin-task-button" onClick={(event) => { event.stopPropagation(); onPin(task); }} aria-label={t("pinTask", { title: task.title })} title={t("pinToTop")}><ArrowUpToLine size={13} /></button>}<span className={`priority-dot ${task.priority}`} title={t(priorityTitleKeys[task.priority])} />
+    </span></div>
     <h3>{task.title}</h3>
     {task.description && <p>{task.description}</p>}
     {(task.checklist?.length || 0) > 0 && <div className="card-checklist"><ListChecks size={13} /><span>{t("itemsDone", { done: task.checklist?.filter((item) => item.completed).length || 0, total: task.checklist?.length || 0 })}</span></div>}
-    {task.sourceUrl && <a className="source-link" href={task.sourceUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}><ExternalLink size={13} />{t("viewNotice")}</a>}
+    {task.sourceUrl && <a className="source-link" href={task.sourceUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}><ExternalLink size={13} />{t("viewNotice")}</a>}
     {task.status !== "todo" && <div className="card-progress"><div><i style={{ width: `${task.progress}%` }} /></div><span>{task.progress}%</span></div>}
-    <footer><span className="task-date"><CalendarDays size={14} />{formatShort(task.dueDate, language)}</span><span className="task-card-footer-actions"><span className={`priority-text ${task.priority}`}>{t(priorityKeys[task.priority])}</span>{onUpdate && <button className="update-progress-button" onClick={(e) => { e.stopPropagation(); onUpdate(task); }} aria-label={t("recordTaskProgress", { title: task.title })}><NotebookPen size={13} />{t("recordProgress")}{(task.logs?.length || 0) > 0 && <i>{task.logs?.length}</i>}</button>}</span></footer>
+    <footer><span className="task-date"><CalendarDays size={14} />{formatShort(task.dueDate, language)}</span><span className="task-card-footer-actions"><span className={`priority-text ${task.priority}`}>{t(priorityKeys[task.priority])}</span>{onUpdate && <button type="button" className="update-progress-button" onClick={(event) => { event.stopPropagation(); onUpdate(task); }} aria-label={t("recordTaskProgress", { title: task.title })}><NotebookPen size={13} />{t("recordProgress")}{(task.logs?.length || 0) > 0 && <i>{task.logs?.length}</i>}</button>}</span></footer>
   </article>;
 }
 
-export function BoardView({ tasks, onEdit, onUpdate, onStatus, onNew, onReorder }: { tasks: Task[]; onEdit: (task: Task) => void; onUpdate: (task: Task) => void; onStatus: (id: string, status: Status) => void; onNew: (status?: Status) => void; onReorder: (orderedIds: string[]) => void }) {
+interface BoardViewProps {
+  tasks: Task[];
+  allTasks: Task[];
+  onEdit: (task: Task) => void;
+  onUpdate: (task: Task) => void;
+  onNew: (status?: Status) => void;
+  onMove: (id: string, status: Status, orderedIds: string[]) => void;
+}
+
+export function BoardView({ tasks, allTasks, onEdit, onUpdate, onNew, onMove }: BoardViewProps) {
   const { t } = usePreferences();
-  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ id: string; placement: DropPlacement } | null>(null);
   const statuses: Status[] = ["todo", "doing", "done"];
   return <div className="board-grid">{statuses.map((status) => {
     const list = tasks.filter((task) => task.status === status).sort(byPosition);
-    return <section className={`board-column column-${status}`} key={status} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); setDropTargetId(null); const draggedId = e.dataTransfer.getData("text/task-id"); const dragged = tasks.find((task) => task.id === draggedId); if (!dragged) return; if (dragged.status !== status) return onStatus(draggedId, status); onReorder(reorderIds(list, draggedId)); }}>
-      <header className="column-head"><div><span className="status-indicator" /><h2>{t(statusKeys[status])}</h2><span className="count-badge">{list.length}</span></div><button className="icon-button small" onClick={() => onNew(status)} aria-label={t("addStatusWork", { status: t(statusKeys[status]) })}><Plus size={18} /></button></header>
+    const destination = allTasks.filter((task) => task.status === status).sort(byPosition);
+    const move = (draggedId: string, targetId?: string, placement: DropPlacement = "before") => {
+      if (!allTasks.some((task) => task.id === draggedId)) return;
+      onMove(draggedId, status, reorderIds(destination, draggedId, targetId, placement));
+    };
+    return <section className={`board-column column-${status}`} key={status} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={(event) => { event.preventDefault(); setDropTarget(null); move(event.dataTransfer.getData("text/task-id")); }}>
+      <header className="column-head"><div><span className="status-indicator" /><h2>{t(statusKeys[status])}</h2><span className="count-badge">{list.length}</span></div><button type="button" className="icon-button small" onClick={() => onNew(status)} aria-label={t("addStatusWork", { status: t(statusKeys[status]) })}><Plus size={18} /></button></header>
       <p className="column-hint">{t(hintKeys[status])}</p>
-      <div className={`column-tasks ${list.length > 4 ? "scrollable-tasks" : ""}`}>{list.map((task) => <TaskCard key={task.id} task={task} onEdit={onEdit} onUpdate={onUpdate} onDragStart={(e, current) => { e.dataTransfer.setData("text/task-id", current.id); e.dataTransfer.effectAllowed = "move"; }} onDropTask={(e, target) => { const draggedId = e.dataTransfer.getData("text/task-id"); const dragged = tasks.find((item) => item.id === draggedId); if (!dragged) return; if (dragged.status !== status) return onStatus(draggedId, status); onReorder(reorderIds(list, draggedId, target.id)); }} onPin={(current) => onReorder([current.id, ...list.filter((task) => task.id !== current.id).map((task) => task.id)])} dropTargetId={dropTargetId} onDropTargetChange={(task) => setDropTargetId(task?.id ?? null)} />)}
-        {list.length === 0 && <button className="empty-column" onClick={() => onNew(status)}><Plus size={18} /><span>{t("addWork")}</span></button>}
+      <div className={`column-tasks ${list.length > 4 ? "scrollable-tasks" : ""}`}>{list.map((task, index) => <TaskCard key={task.id} task={task} onEdit={onEdit} onUpdate={onUpdate} onDragStart={(event, current) => { event.dataTransfer.setData("text/task-id", current.id); event.dataTransfer.effectAllowed = "move"; }} onDropTask={(event, target) => move(event.dataTransfer.getData("text/task-id"), target.id, placementAtPointer(event))} onMoveUp={() => move(task.id, list[index - 1]?.id)} onMoveDown={() => move(task.id, list[index + 2]?.id)} canMoveUp={index > 0} canMoveDown={index < list.length - 1} onPin={(current) => onMove(current.id, status, [current.id, ...destination.filter((item) => item.id !== current.id).map((item) => item.id)])} dropTargetId={dropTarget?.id} dropPlacement={dropTarget?.placement} onDropTargetChange={(target, placement) => setDropTarget(target ? { id: target.id, placement: placement ?? "before" } : null)} />)}
+        {list.length === 0 && <button type="button" className="empty-column" onClick={() => onNew(status)}><Plus size={18} /><span>{t("addWork")}</span></button>}
       </div>{list.length > 4 && <span className="scroll-hint">{t("scrollForMore")}</span>}
     </section>;
   })}</div>;

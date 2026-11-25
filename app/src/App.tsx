@@ -71,6 +71,7 @@ export default function App() {
   const upsert = useRpcMutation<{ userId: string; task: Task }, Task[]>("task.upsert");
   const remove = useRpcMutation<{ userId: string; id: string }, Task[]>("task.delete");
   const statusMutation = useRpcMutation<{ userId: string; id: string; status: Status }, Task[]>("task.setStatus");
+  const moveMutation = useRpcMutation<{ userId: string; id: string; status: Status; orderedIds: string[] }, Task[]>("task.move");
   const logMutation = useRpcMutation<{ userId: string; taskId: string; log: WorkLog }, Task[]>("task.addLog");
   const restoreMutation = useRpcMutation<{ userId: string; id: string }, Task[]>("task.restore");
   const reorderMutation = useRpcMutation<{ userId: string; orderedIds: string[] }, Task[]>("task.reorder");
@@ -152,6 +153,21 @@ export default function App() {
     const positions = new Map(orderedIds.map((id, index) => [id, (index + 1) * 100]));
     applyTasks([...tasks].map((task) => positions.has(task.id) ? { ...task, position: positions.get(task.id) ?? task.position } : task).sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || b.createdAt - a.createdAt));
     reorderMutation.mutate({ userId: activeUserId, orderedIds }, { onSuccess: applyTasks, onError: mutationError });
+  };
+  const moveTask = (id: string, status: Status, orderedIds: string[]) => {
+    const original = tasks.find((task) => task.id === id);
+    if (!original) return;
+    const previous = tasks;
+    const positions = new Map(orderedIds.map((taskId, index) => [taskId, (index + 1) * 100]));
+    const moved = { ...original, status, progress: status === "done" ? 100 : original.progress, checklist: status === "done" ? original.checklist.map((item) => ({ ...item, completed: true })) : original.checklist };
+    applyTasks(tasks.map((task) => {
+      const current = task.id === id ? moved : task;
+      return { ...current, position: positions.get(task.id) ?? current.position };
+    }));
+    moveMutation.mutate({ userId: activeUserId, id, status, orderedIds }, {
+      onSuccess: (next) => { applyTasks(next); setToast(t(original.status === status ? "orderSynced" : status === "done" ? "doneSynced" : "statusSynced")); },
+      onError: (error) => { applyTasks(previous); mutationError(error); },
+    });
   };
   const deleteTask = (id: string) => {
     remove.mutate({ userId: activeUserId, id }, {
@@ -246,7 +262,7 @@ export default function App() {
       <div className="content-toolbar"><div className="mobile-view-tabs">{navItems.map(({ id }) => <button key={id} className={view === id ? "active" : ""} onClick={() => setView(id)}>{t(id === "focus" ? "today" : id)}</button>)}</div><div className="view-copy"><h2>{view === "focus" ? t("yourWorkspace") : view === "board" ? t("boardSubheading") : view === "logs" ? t("workJournal") : view === "projects" ? t("projectOverview") : t("projectTimeline")}</h2><span>{t("workItems", { count: filtered.length })}{search && ` · “${search}”`}</span></div><select value={project} onChange={(event) => setProject(event.target.value)} aria-label={t("projectFilter")}><option value="all">{t("allProjects")}</option>{projects.map((name) => <option value={name} key={name}>{name}</option>)}</select></div>
       <div className="view-container">
         {view === "focus" && <FocusView tasks={filtered} onEdit={setEditing} onUpdate={setProgressTask} onBoard={() => setView("board")} onReorder={reorderTasks} />}
-        {view === "board" && <BoardView tasks={filtered} onEdit={setEditing} onUpdate={setProgressTask} onStatus={updateStatus} onNew={openNew} onReorder={reorderTasks} />}
+        {view === "board" && <BoardView tasks={filtered} allTasks={tasks} onEdit={setEditing} onUpdate={setProgressTask} onNew={openNew} onMove={moveTask} />}
         {view === "projects" && <ProjectsView tasks={filtered} onOpenProject={(name) => { setProject(name); setView("board"); }} />}
         {view === "gantt" && <GanttView tasks={filtered} onEdit={setEditing} onMove={moveTaskDates} />}
         {view === "logs" && <LogsView tasks={filtered} query={search} onEdit={setEditing} onBoard={() => setView("board")} onEditLog={(task, log) => setEditingLog({ task, log })} onDeleteLog={deleteLog} />}
