@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { DndContext, DragOverlay, PointerSensor, closestCenter, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragOverEvent } from "@dnd-kit/core";
 import { addDays, differenceInCalendarDays, format, startOfDay } from "date-fns";
 import { ArrowUpToLine, CalendarDays, Check, ChevronDown, ChevronRight, ChevronUp, Clock3, ExternalLink, ListChecks, NotebookPen, Plus, Sparkles } from "lucide-react";
 import { enUS, zhCN } from "date-fns/locale";
@@ -90,25 +91,93 @@ interface BoardViewProps {
   onMove: (id: string, status: Status, orderedIds: string[]) => void;
 }
 
-export function BoardView({ tasks, allTasks, onEdit, onUpdate, onNew, onMove }: BoardViewProps) {
+interface BoardCardProps {
+  task: Task;
+  onEdit: (task: Task) => void;
+  onUpdate: (task: Task) => void;
+  onPin: (task: Task) => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  dropTarget: { id: string; placement: DropPlacement } | null;
+}
+
+function DraggableBoardCard({ task, onEdit, onUpdate, onPin, onMoveUp, onMoveDown, canMoveUp, canMoveDown, dropTarget }: BoardCardProps) {
+  const data = { taskId: task.id, status: task.status };
+  const { listeners, setNodeRef: setDraggableRef, isDragging } = useDraggable({ id: task.id, data });
+  const { setNodeRef: setDroppableRef } = useDroppable({ id: task.id, data });
+  const dragged = useRef(false);
+  useEffect(() => {
+    if (isDragging) {
+      dragged.current = true;
+      return;
+    }
+    const timer = window.setTimeout(() => { dragged.current = false; }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isDragging]);
+  return <div ref={(node) => { setDraggableRef(node); setDroppableRef(node); }} {...listeners} className={`board-drag-source ${isDragging ? "is-dragging" : ""}`} onClickCapture={(event) => { if (dragged.current) { event.preventDefault(); event.stopPropagation(); dragged.current = false; } }}>
+    <TaskCard task={task} onEdit={onEdit} onUpdate={onUpdate} onPin={onPin} onMoveUp={onMoveUp} onMoveDown={onMoveDown} canMoveUp={canMoveUp} canMoveDown={canMoveDown} dropTargetId={dropTarget?.id} dropPlacement={dropTarget?.placement} />
+  </div>;
+}
+
+interface BoardColumnProps {
+  status: Status;
+  list: Task[];
+  destination: Task[];
+  dropTarget: { id: string; placement: DropPlacement } | null;
+  onEdit: (task: Task) => void;
+  onUpdate: (task: Task) => void;
+  onNew: (status?: Status) => void;
+  onMoveTask: (id: string, status: Status, targetId?: string, placement?: DropPlacement) => void;
+  onMove: (id: string, status: Status, orderedIds: string[]) => void;
+}
+
+function BoardColumn({ status, list, destination, dropTarget, onEdit, onUpdate, onNew, onMoveTask, onMove }: BoardColumnProps) {
   const { t } = usePreferences();
+  const { setNodeRef, isOver } = useDroppable({ id: `board-column-${status}`, data: { status } });
+  return <section ref={setNodeRef} className={`board-column column-${status} ${isOver ? "column-drop-active" : ""}`}>
+    <header className="column-head"><div><span className="status-indicator" /><h2>{t(statusKeys[status])}</h2><span className="count-badge">{list.length}</span></div><button type="button" className="icon-button small" onClick={() => onNew(status)} aria-label={t("addStatusWork", { status: t(statusKeys[status]) })}><Plus size={18} /></button></header>
+    <p className="column-hint">{t(hintKeys[status])}</p>
+    <div className={`column-tasks ${list.length > 4 ? "scrollable-tasks" : ""}`}>{list.map((task, index) => <DraggableBoardCard key={task.id} task={task} onEdit={onEdit} onUpdate={onUpdate} onMoveUp={() => onMoveTask(task.id, status, list[index - 1]?.id)} onMoveDown={() => onMoveTask(task.id, status, list[index + 2]?.id)} canMoveUp={index > 0} canMoveDown={index < list.length - 1} onPin={(current) => onMove(current.id, status, [current.id, ...destination.filter((item) => item.id !== current.id).map((item) => item.id)])} dropTarget={dropTarget} />)}
+      {list.length === 0 && <button type="button" className="empty-column" onClick={() => onNew(status)}><Plus size={18} /><span>{t("addWork")}</span></button>}
+    </div>{list.length > 4 && <span className="scroll-hint">{t("scrollForMore")}</span>}
+  </section>;
+}
+
+const pointerPlacement = (event: DragOverEvent | DragEndEvent): DropPlacement => {
+  const activeRect = event.active.rect.current.translated;
+  const overRect = event.over?.rect;
+  if (!activeRect || !overRect) return "before";
+  return activeRect.top + activeRect.height / 2 > overRect.top + overRect.height / 2 ? "after" : "before";
+};
+
+export function BoardView({ tasks, allTasks, onEdit, onUpdate, onNew, onMove }: BoardViewProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; placement: DropPlacement } | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const statuses: Status[] = ["todo", "doing", "done"];
-  return <div className="board-grid">{statuses.map((status) => {
-    const list = tasks.filter((task) => task.status === status).sort(byPosition);
+  const activeTask = allTasks.find((task) => task.id === activeId);
+  const moveTask = (id: string, status: Status, targetId?: string, placement: DropPlacement = "before") => {
+    if (!allTasks.some((task) => task.id === id)) return;
     const destination = allTasks.filter((task) => task.status === status).sort(byPosition);
-    const move = (draggedId: string, targetId?: string, placement: DropPlacement = "before") => {
-      if (!allTasks.some((task) => task.id === draggedId)) return;
-      onMove(draggedId, status, reorderIds(destination, draggedId, targetId, placement));
-    };
-    return <section className={`board-column column-${status}`} key={status} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={(event) => { event.preventDefault(); setDropTarget(null); move(event.dataTransfer.getData("text/task-id")); }}>
-      <header className="column-head"><div><span className="status-indicator" /><h2>{t(statusKeys[status])}</h2><span className="count-badge">{list.length}</span></div><button type="button" className="icon-button small" onClick={() => onNew(status)} aria-label={t("addStatusWork", { status: t(statusKeys[status]) })}><Plus size={18} /></button></header>
-      <p className="column-hint">{t(hintKeys[status])}</p>
-      <div className={`column-tasks ${list.length > 4 ? "scrollable-tasks" : ""}`}>{list.map((task, index) => <TaskCard key={task.id} task={task} onEdit={onEdit} onUpdate={onUpdate} onDragStart={(event, current) => { event.dataTransfer.setData("text/task-id", current.id); event.dataTransfer.effectAllowed = "move"; }} onDropTask={(event, target) => move(event.dataTransfer.getData("text/task-id"), target.id, placementAtPointer(event))} onMoveUp={() => move(task.id, list[index - 1]?.id)} onMoveDown={() => move(task.id, list[index + 2]?.id)} canMoveUp={index > 0} canMoveDown={index < list.length - 1} onPin={(current) => onMove(current.id, status, [current.id, ...destination.filter((item) => item.id !== current.id).map((item) => item.id)])} dropTargetId={dropTarget?.id} dropPlacement={dropTarget?.placement} onDropTargetChange={(target, placement) => setDropTarget(target ? { id: target.id, placement: placement ?? "before" } : null)} />)}
-        {list.length === 0 && <button type="button" className="empty-column" onClick={() => onNew(status)}><Plus size={18} /><span>{t("addWork")}</span></button>}
-      </div>{list.length > 4 && <span className="scroll-hint">{t("scrollForMore")}</span>}
-    </section>;
-  })}</div>;
+    onMove(id, status, reorderIds(destination, id, targetId, placement));
+  };
+  const clearDrag = () => { setActiveId(null); setDropTarget(null); };
+  const dragOver = (event: DragOverEvent) => {
+    const data = event.over?.data.current as { taskId?: string } | undefined;
+    setDropTarget(data?.taskId ? { id: data.taskId, placement: pointerPlacement(event) } : null);
+  };
+  const dragEnd = (event: DragEndEvent) => {
+    const activeData = event.active.data.current as { taskId?: string } | undefined;
+    const overData = event.over?.data.current as { status?: Status; taskId?: string } | undefined;
+    if (activeData?.taskId && overData?.status) moveTask(activeData.taskId, overData.status, overData.taskId, pointerPlacement(event));
+    clearDrag();
+  };
+  return <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={(event) => setActiveId(String(event.active.id))} onDragOver={dragOver} onDragEnd={dragEnd} onDragCancel={clearDrag}>
+    <div className="board-grid">{statuses.map((status) => <BoardColumn key={status} status={status} list={tasks.filter((task) => task.status === status).sort(byPosition)} destination={allTasks.filter((task) => task.status === status).sort(byPosition)} dropTarget={dropTarget} onEdit={onEdit} onUpdate={onUpdate} onNew={onNew} onMoveTask={moveTask} onMove={onMove} />)}</div>
+    <DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>{activeTask ? <div className="board-drag-overlay"><TaskCard task={activeTask} onEdit={() => {}} /></div> : null}</DragOverlay>
+  </DndContext>;
 }
 
 export function GanttView({ tasks, onEdit, onMove }: { tasks: Task[]; onEdit: (task: Task) => void; onMove: (task: Task, days: number) => void }) {

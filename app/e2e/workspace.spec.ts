@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator } from "@playwright/test";
 
 test("defaults to English and persists Chinese selection", async ({ page }) => {
   await page.goto("/");
@@ -99,14 +99,27 @@ test("moves and reorders work items with buttons and drag and drop", async ({ pa
   expect(restoredTodo.indexOf("order-alpha")).toBeLessThan(restoredTodo.indexOf("order-beta"));
 
   const card = (title: string) => page.locator(".task-card").filter({ has: page.getByRole("heading", { name: title, exact: true }) });
-  await Promise.all([moveResponse(), card("Alpha").dragTo(page.locator(".column-doing .column-head"))]);
+  const pointerDrag = async (source: Locator, target: Locator, after = false) => {
+    const sourceBox = await source.boundingBox();
+    const targetBox = await target.boundingBox();
+    expect(sourceBox).not.toBeNull();
+    expect(targetBox).not.toBeNull();
+    if (!sourceBox || !targetBox) return;
+    const start = { x: sourceBox.x + sourceBox.width / 2, y: sourceBox.y + sourceBox.height / 2 };
+    const end = { x: targetBox.x + Math.min(40, targetBox.width / 2), y: after ? targetBox.y + targetBox.height - 8 : targetBox.y + targetBox.height / 2 };
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x + 12, start.y + 12, { steps: 4 });
+    await page.mouse.move(end.x, end.y, { steps: 20 });
+    await page.mouse.up();
+    await expect(page.locator(".task-dialog")).toHaveCount(0);
+  };
+  await Promise.all([moveResponse(), pointerDrag(card("Alpha"), page.locator(".column-doing"), true)]);
   response = await page.request.post("/api/rpc/task.list", { data: { userId: "admin" } });
   tasks = await response.json();
   expect(tasks.find((task: { id: string }) => task.id === "order-alpha").status).toBe("doing");
 
-  const secondBox = await card("Second").boundingBox();
-  expect(secondBox).not.toBeNull();
-  await Promise.all([moveResponse(), card("First").dragTo(card("Second"), { targetPosition: { x: 40, y: (secondBox?.height ?? 100) - 8 } })]);
+  await Promise.all([moveResponse(), pointerDrag(card("First"), card("Second"), true)]);
   await page.reload();
   await expect(page.locator(".column-doing .task-card h3")).toHaveText(["Second", "First", "Alpha"]);
   response = await page.request.post("/api/rpc/task.list", { data: { userId: "admin" } });

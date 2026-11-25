@@ -695,6 +695,14 @@ body { transition: background-color .22s ease, color .22s ease; }
 .task-order-button:hover:not(:disabled) { background: oklch(0.92 0.035 255 / 70%); color: var(--blue-deep); }
 .task-order-button:disabled { opacity: .24; }
 :root[data-theme="dark"] .task-order-button:hover:not(:disabled) { background: oklch(0.46 0.05 255 / 55%); }
+.board-drag-source { border-radius: 17px; cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.board-drag-source:active { cursor: grabbing; }
+.board-drag-source.is-dragging { opacity: .28; }
+.board-drag-overlay { pointer-events: none; cursor: grabbing; }
+.board-drag-overlay .task-card { transform: scale(1.025); box-shadow: 0 20px 48px oklch(0.25 0.05 255 / 24%), 0 4px 12px oklch(0.25 0.05 255 / 12%); }
+.board-column.column-drop-active { background: oklch(0.94 0.025 255 / 62%); border-color: oklch(0.57 0.19 255 / 32%); }
+:root[data-theme="dark"] .board-column.column-drop-active { background: oklch(0.34 0.035 255 / 65%); border-color: oklch(0.70 0.10 255 / 35%); }
+:root[data-theme="dark"] .board-drag-overlay .task-card { box-shadow: 0 20px 48px oklch(0.05 0.02 255 / 55%), 0 4px 12px oklch(0.05 0.02 255 / 35%); }
 
 /* Keep task actions visible while long edit forms scroll independently. */
 .task-dialog { display: flex; flex-direction: column; overflow: hidden; }
