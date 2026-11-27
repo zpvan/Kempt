@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { X, Trash2, NotebookPen, ListChecks, Plus } from "lucide-react";
 import { checklistProgress, emptyTask, type ChecklistItem, type Priority, type Status, type Task } from "@/lib/tasks";
 import { usePreferences } from "@/providers/preferences";
@@ -10,6 +10,7 @@ const priorityKeys = { low: "lowPriority", medium: "mediumPriority", high: "high
 interface Props {
   userId: string;
   task?: Task | null;
+  projects: string[];
   onClose: () => void;
   onSave: (task: Omit<Task, "id" | "createdAt">, id?: string) => void;
   onDelete?: (id: string) => void;
@@ -17,8 +18,10 @@ interface Props {
   onUpdate?: (task: Task) => void;
 }
 
-export default function TaskDialog({ userId, task, onClose, onSave, onDelete, defaultStatus = "todo", onUpdate }: Props) {
+export default function TaskDialog({ userId, task, projects, onClose, onSave, onDelete, defaultStatus = "todo", onUpdate }: Props) {
   const { t } = usePreferences();
+  const projectListId = useId();
+  const projectOptions = Array.from(new Set([t("defaultProject"), ...projects]));
   const draftKey = taskDraftKey(userId, task?.id ?? "new");
   const itemsDraftKey = taskItemsDraftKey(userId, task?.id ?? "new");
   const [form, setForm, formRestored] = useDraftState(draftKey, task ? { ...task } : { ...emptyTask(), project: t("defaultProject"), status: defaultStatus });
@@ -60,7 +63,7 @@ export default function TaskDialog({ userId, task, onClose, onSave, onDelete, de
           {(formRestored || itemsRestored) && <p className="draft-restored">{t("draftRestored")}</p>}
           <label className="field full"><span>{t("workTitle")}</span><input autoFocus value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={t("titlePlaceholder")} maxLength={120} /></label>
           <label className="field full"><span>{t("description")}</span><textarea value={form.description} onChange={(e) => set("description", e.target.value)} placeholder={t("descriptionPlaceholder")} rows={task ? 3 : 2} /></label>
-          <label className="field"><span>{t("project")}</span><input value={form.project} onChange={(e) => set("project", e.target.value)} placeholder={t("defaultProject")} /></label>
+          <label className="field"><span>{t("project")}</span><input list={projectListId} aria-label={t("project")} autoComplete="off" value={form.project} onChange={(e) => set("project", e.target.value)} placeholder={t("defaultProject")} /><datalist id={projectListId}>{projectOptions.map((name) => <option key={name} value={name} />)}</datalist><small className="field-hint">{t("projectInputHint")}</small></label>
           {task && <label className="field"><span>{t("currentStatus")}</span><select value={form.status} onChange={(e) => set("status", e.target.value as Status)}>{(["todo", "doing", "done"] as Status[]).map((key) => <option key={key} value={key}>{t(statusKeys[key])}</option>)}</select></label>}
           {task && <label className="field full"><span>{t("sourceOptional")}</span><input type="url" value={form.sourceUrl || ""} onChange={(e) => set("sourceUrl", e.target.value)} placeholder="https://" /></label>}
           {task && <label className="field"><span>{t("startDate")}</span><input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} /></label>}

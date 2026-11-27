@@ -11,6 +11,13 @@ const hintKeys = { todo: "hintTodo", doing: "hintDoing", done: "hintDone" } as c
 const priorityKeys = { low: "priorityLow", medium: "priorityMedium", high: "priorityHigh" } as const;
 const priorityTitleKeys = { low: "lowPriority", medium: "mediumPriority", high: "highPriority" } as const;
 const byPosition = (a: Task, b: Task) => (a.position ?? 0) - (b.position ?? 0) || b.createdAt - a.createdAt;
+const sortColumnTasks = (tasks: Task[], status: Status, language: "zh" | "en") => [...tasks].sort((a, b) => {
+  if (status !== "doing") {
+    const projectOrder = a.project.localeCompare(b.project, language === "zh" ? "zh-CN" : "en");
+    if (projectOrder) return projectOrder;
+  }
+  return byPosition(a, b);
+});
 type DropPlacement = "before" | "after";
 
 export function reorderIds(list: Task[], draggedId: string, targetId?: string, placement: DropPlacement = "before") {
@@ -136,10 +143,39 @@ interface BoardColumnProps {
 function BoardColumn({ status, list, destination, dropTarget, onEdit, onUpdate, onNew, onMoveTask, onMove }: BoardColumnProps) {
   const { t } = usePreferences();
   const { setNodeRef, isOver } = useDroppable({ id: `board-column-${status}`, data: { status } });
+  const [openProjects, setOpenProjects] = useState<string[]>([]);
+  const grouped = status !== "doing";
+  const projectNames = grouped ? Array.from(new Set(list.map((task) => task.project))) : [];
+  const toggleProject = (project: string) => setOpenProjects((current) => current.includes(project) ? current.filter((name) => name !== project) : [...current, project]);
+  const pinTask = (current: Task) => {
+    if (!grouped) {
+      onMove(current.id, status, [current.id, ...destination.filter((item) => item.id !== current.id).map((item) => item.id)]);
+      return;
+    }
+    const projectItems = destination.filter((item) => item.project === current.project);
+    const orderedIds = [current.id, ...projectItems.filter((item) => item.id !== current.id).map((item) => item.id), ...destination.filter((item) => item.project !== current.project).map((item) => item.id)];
+    onMove(current.id, status, orderedIds);
+  };
+  const renderCards = (items: Task[]) => items.map((task) => {
+    const index = list.findIndex((item) => item.id === task.id);
+    return <DraggableBoardCard key={task.id} task={task} onEdit={onEdit} onUpdate={onUpdate} onMoveUp={() => onMoveTask(task.id, status, list[index - 1]?.id)} onMoveDown={() => onMoveTask(task.id, status, list[index + 2]?.id)} canMoveUp={index > 0} canMoveDown={index < list.length - 1} onPin={pinTask} dropTarget={dropTarget} />;
+  });
   return <section ref={setNodeRef} className={`board-column column-${status} ${isOver ? "column-drop-active" : ""}`}>
     <header className="column-head"><div><span className="status-indicator" /><h2>{t(statusKeys[status])}</h2><span className="count-badge">{list.length}</span></div><button type="button" className="icon-button small" onClick={() => onNew(status)} aria-label={t("addStatusWork", { status: t(statusKeys[status]) })}><Plus size={18} /></button></header>
     <p className="column-hint">{t(hintKeys[status])}</p>
-    <div className={`column-tasks ${list.length > 4 ? "scrollable-tasks" : ""}`}>{list.map((task, index) => <DraggableBoardCard key={task.id} task={task} onEdit={onEdit} onUpdate={onUpdate} onMoveUp={() => onMoveTask(task.id, status, list[index - 1]?.id)} onMoveDown={() => onMoveTask(task.id, status, list[index + 2]?.id)} canMoveUp={index > 0} canMoveDown={index < list.length - 1} onPin={(current) => onMove(current.id, status, [current.id, ...destination.filter((item) => item.id !== current.id).map((item) => item.id)])} dropTarget={dropTarget} />)}
+    <div className={`column-tasks ${list.length > 4 ? "scrollable-tasks" : ""}`}>
+      {grouped ? projectNames.map((project) => {
+        const items = list.filter((task) => task.project === project).sort(byPosition);
+        const open = openProjects.includes(project);
+        return <div className={`column-project-group ${open ? "is-open" : ""}`} data-project={project} key={project}>
+          <button type="button" className="project-folder" data-project={project} aria-expanded={open} aria-label={t(open ? "closeProjectFolder" : "openProjectFolder", { project, count: items.length })} onClick={() => toggleProject(project)}>
+            <span className="folder-preview" aria-hidden="true">{items.slice(0, 4).map((item) => <span className="folder-mini" key={item.id}><i className={`priority-dot ${item.priority}`} /><span>{item.title}</span></span>)}</span>
+            <span className="folder-copy"><b>{project}</b><small>{t("workItems", { count: items.length })}</small></span>
+            {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          {open && <div className="project-group-items">{renderCards(items)}</div>}
+        </div>;
+      }) : renderCards(list)}
       {list.length === 0 && <button type="button" className="empty-column" onClick={() => onNew(status)}><Plus size={18} /><span>{t("addWork")}</span></button>}
     </div>{list.length > 4 && <span className="scroll-hint">{t("scrollForMore")}</span>}
   </section>;
@@ -153,6 +189,7 @@ const pointerPlacement = (event: DragOverEvent | DragEndEvent): DropPlacement =>
 };
 
 export function BoardView({ tasks, allTasks, onEdit, onUpdate, onNew, onMove }: BoardViewProps) {
+  const { language } = usePreferences();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; placement: DropPlacement } | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -160,7 +197,7 @@ export function BoardView({ tasks, allTasks, onEdit, onUpdate, onNew, onMove }: 
   const activeTask = allTasks.find((task) => task.id === activeId);
   const moveTask = (id: string, status: Status, targetId?: string, placement: DropPlacement = "before") => {
     if (!allTasks.some((task) => task.id === id)) return;
-    const destination = allTasks.filter((task) => task.status === status).sort(byPosition);
+    const destination = sortColumnTasks(allTasks.filter((task) => task.status === status), status, language);
     onMove(id, status, reorderIds(destination, id, targetId, placement));
   };
   const clearDrag = () => { setActiveId(null); setDropTarget(null); };
@@ -175,7 +212,7 @@ export function BoardView({ tasks, allTasks, onEdit, onUpdate, onNew, onMove }: 
     clearDrag();
   };
   return <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={(event) => setActiveId(String(event.active.id))} onDragOver={dragOver} onDragEnd={dragEnd} onDragCancel={clearDrag}>
-    <div className="board-grid">{statuses.map((status) => <BoardColumn key={status} status={status} list={tasks.filter((task) => task.status === status).sort(byPosition)} destination={allTasks.filter((task) => task.status === status).sort(byPosition)} dropTarget={dropTarget} onEdit={onEdit} onUpdate={onUpdate} onNew={onNew} onMoveTask={moveTask} onMove={onMove} />)}</div>
+    <div className="board-grid">{statuses.map((status) => <BoardColumn key={status} status={status} list={sortColumnTasks(tasks.filter((task) => task.status === status), status, language)} destination={sortColumnTasks(allTasks.filter((task) => task.status === status), status, language)} dropTarget={dropTarget} onEdit={onEdit} onUpdate={onUpdate} onNew={onNew} onMoveTask={moveTask} onMove={onMove} />)}</div>
     <DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>{activeTask ? <div className="board-drag-overlay"><TaskCard task={activeTask} onEdit={() => {}} /></div> : null}</DragOverlay>
   </DndContext>;
 }
